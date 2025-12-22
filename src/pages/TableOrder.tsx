@@ -10,12 +10,16 @@ import {
   Menu,
   RefreshCw,
   FileText,
-  Check
+  Check,
+  Heart,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatNepalTime } from '@/lib/nepalTime';
+import { useFavorites } from '@/hooks/useFavorites';
+import { useWaitTime } from '@/hooks/useWaitTime';
 
-type Category = 'Tea' | 'Snacks' | 'Cold Drink' | 'Pastry';
+type Category = 'Tea' | 'Snacks' | 'Cold Drink' | 'Pastry' | 'Favorites';
 
 export default function TableOrder() {
   const { tableNumber } = useParams();
@@ -33,6 +37,12 @@ export default function TableOrder() {
   const [successModalOpen, setSuccessModalOpen] = useState(false);
 
   const table = parseInt(tableNumber || '0');
+  
+  // Favorites hook
+  const { favorites, toggleFavorite, isFavorite } = useFavorites(phone);
+  
+  // Wait time hook
+  const { formatWaitTime, getWaitTimeForNewOrder, queueLength } = useWaitTime();
 
   // Validate table number
   useEffect(() => {
@@ -42,11 +52,19 @@ export default function TableOrder() {
     }
   }, [table, settings.tableCount, navigate]);
 
-  const categories: Category[] = ['Tea', 'Snacks', 'Cold Drink', 'Pastry'];
+  const categories: Category[] = ['Favorites', 'Tea', 'Snacks', 'Cold Drink', 'Pastry'];
   
-  const filteredItems = menuItems.filter(
-    item => item.category === activeCategory && item.available
-  );
+  // Get favorite items
+  const favoriteItems = menuItems.filter(item => favorites.includes(item.id) && item.available);
+  
+  const filteredItems = activeCategory === 'Favorites' 
+    ? favoriteItems
+    : menuItems.filter(item => item.category === activeCategory && item.available);
+
+  // Calculate estimated wait time for current cart
+  const estimatedWait = cart.length > 0 
+    ? getWaitTimeForNewOrder(cart.map(c => ({ name: c.name, qty: c.qty })))
+    : 0;
 
   // Get customer's orders for this table - only show pending and accepted
   const myOrders = orders.filter(
@@ -130,6 +148,7 @@ export default function TableOrder() {
 
   const scrollToCategory = (cat: Category) => {
     setActiveCategory(cat);
+    if (cat === 'Favorites') return; // No scroll for favorites
     const el = document.getElementById(`cat-${cat}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -270,20 +289,104 @@ export default function TableOrder() {
           <button
             key={cat}
             onClick={() => scrollToCategory(cat)}
-            className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+            className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all flex items-center gap-1 ${
               activeCategory === cat
                 ? 'bg-black text-white'
                 : 'bg-[#f6f6f6] text-[#333]'
             }`}
           >
+            {cat === 'Favorites' && <Heart className="w-3 h-3" />}
             {cat}
+            {cat === 'Favorites' && favorites.length > 0 && (
+              <span className="bg-white/20 px-1.5 rounded-full text-xs ml-1">{favorites.length}</span>
+            )}
           </button>
         ))}
+        
+        {/* Wait Time Badge */}
+        {queueLength > 0 && (
+          <div className="flex items-center gap-1 px-3 py-2 bg-[#fff3e0] rounded-full text-sm text-[#e65100] whitespace-nowrap">
+            <Clock className="w-3 h-3" />
+            ~{formatWaitTime(estimatedWait)} wait
+          </div>
+        )}
       </div>
 
       {/* Menu Feed */}
       <div className="px-5 pt-5">
-        {categories.map(cat => {
+        {/* Favorites Section */}
+        {activeCategory === 'Favorites' && (
+          <div id="cat-Favorites">
+            <h2 className="text-2xl font-bold mb-5 flex items-center gap-2">
+              <Heart className="w-6 h-6 text-[#e74c3c]" /> Favorites
+            </h2>
+            {favoriteItems.length === 0 ? (
+              <div className="text-center py-8 text-[#999]">
+                <Heart className="w-12 h-12 mx-auto mb-3 text-[#ddd]" />
+                <p>No favorites yet</p>
+                <p className="text-sm">Tap the heart icon on items to add them here</p>
+              </div>
+            ) : (
+              favoriteItems.map(item => {
+                const qty = getItemQty(item.id);
+                return (
+                  <div key={item.id} className="flex justify-between border-b border-[#eee] pb-4 mb-5">
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold mb-1">{item.name}</h3>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                          className="text-[#e74c3c]"
+                        >
+                          <Heart className="w-4 h-4 fill-current" />
+                        </button>
+                      </div>
+                      <p className="font-medium text-[#333]">रू{item.price}</p>
+                      
+                      <div className="mt-3">
+                        {qty === 0 ? (
+                          <button
+                            onClick={() => addToCart(item)}
+                            className="bg-white border border-[#ddd] text-[#06C167] font-bold px-5 py-1.5 rounded-full shadow-sm hover:shadow-md transition-shadow"
+                          >
+                            ADD
+                          </button>
+                        ) : (
+                          <div className="inline-flex items-center bg-white border border-[#eee] rounded-full overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
+                            <button
+                              onClick={() => updateQty(item.id, -1)}
+                              className="w-9 h-8 flex items-center justify-center text-[#06C167] text-xl active:bg-[#f0f0f0]"
+                            >
+                              −
+                            </button>
+                            <span className="font-bold text-sm w-6 text-center">{qty}</span>
+                            <button
+                              onClick={() => updateQty(item.id, 1)}
+                              className="w-9 h-8 flex items-center justify-center text-[#06C167] text-xl active:bg-[#f0f0f0]"
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="w-[100px] h-[100px] rounded-xl bg-[#eee] overflow-hidden">
+                      <img 
+                        src={`https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=200&auto=format&fit=crop`}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* Regular Categories */}
+        {categories.filter(c => c !== 'Favorites').map(cat => {
+          if (activeCategory === 'Favorites') return null;
           const items = menuItems.filter(item => item.category === cat && item.available);
           if (items.length === 0) return null;
           
@@ -292,10 +395,19 @@ export default function TableOrder() {
               <h2 className="text-2xl font-bold mb-5">{cat}</h2>
               {items.map(item => {
                 const qty = getItemQty(item.id);
+                const isFav = isFavorite(item.id);
                 return (
                   <div key={item.id} className="flex justify-between border-b border-[#eee] pb-4 mb-5">
                     <div className="flex-1 pr-4">
-                      <h3 className="text-lg font-semibold mb-1">{item.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold mb-1">{item.name}</h3>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                          className={isFav ? 'text-[#e74c3c]' : 'text-[#ccc]'}
+                        >
+                          <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
+                        </button>
+                      </div>
                       <p className="font-medium text-[#333]">रू{item.price}</p>
                       
                       {/* Inline Quantity Control */}

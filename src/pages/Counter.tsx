@@ -11,11 +11,14 @@ import {
   Search,
   LogOut,
   Printer,
-  RefreshCw
+  RefreshCw,
+  BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatNepalTime, formatNepalDateTime } from '@/lib/nepalTime';
 import FonepayQR from '@/components/FonepayQR';
+import SalesReport from '@/components/SalesReport';
+import { useOrderNotification } from '@/hooks/useOrderNotification';
 
 interface BillGroup {
   key: string;
@@ -30,6 +33,10 @@ interface BillGroup {
 export default function Counter() {
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
+  
+  // Audio notification hook
+  useOrderNotification();
+  
   const { 
     orders, 
     bills, 
@@ -45,7 +52,7 @@ export default function Counter() {
     getCustomerPoints
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'active' | 'accepted' | 'history'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'accepted' | 'history' | 'reports'>('active');
   const [searchInput, setSearchInput] = useState('');
   const [selectedPhones, setSelectedPhones] = useState<string[]>([]);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -394,6 +401,16 @@ export default function Counter() {
               >
                 History
               </button>
+              <button 
+                onClick={() => setActiveTab('reports')}
+                className={`px-5 py-2.5 rounded-full font-semibold text-sm transition-all flex items-center gap-1 ${
+                  activeTab === 'reports' 
+                    ? 'bg-[#333] text-white' 
+                    : 'bg-white border border-[#ddd] text-[#555]'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" /> Reports
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -554,6 +571,11 @@ export default function Counter() {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Reports Tab */}
+          {activeTab === 'reports' && (
+            <SalesReport />
           )}
         </div>
 
