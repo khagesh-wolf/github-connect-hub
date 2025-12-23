@@ -45,31 +45,67 @@ export default function TableOrder() {
   // Wait time hook
   const { formatWaitTime, getWaitTimeForNewOrder, queueLength } = useWaitTime();
 
-  // Validate table number
+  // Get the table number that was originally scanned (stored in session)
+  const [lockedTable, setLockedTable] = useState<number | null>(null);
+
+  // Validate table number and lock the session to the scanned table
   useEffect(() => {
     if (!table || table < 1 || table > settings.tableCount) {
       toast.error('Invalid table number');
       navigate('/');
+      return;
     }
+
+    // Check if there's an existing session with a different table
+    const sessionKey = 'chiyadani:customerActiveSession';
+    const existingSession = localStorage.getItem(sessionKey);
+    
+    if (existingSession) {
+      try {
+        const session = JSON.parse(existingSession) as { table: number; phone?: string; timestamp: number };
+        // Session expires after 4 hours
+        const sessionAge = Date.now() - session.timestamp;
+        const isExpired = sessionAge > 4 * 60 * 60 * 1000;
+        
+        if (!isExpired && session.table !== table) {
+          // User is trying to access a different table via URL manipulation
+          toast.error(`You are already at Table ${session.table}. Please use that table's QR code.`);
+          navigate(`/table/${session.table}`);
+          return;
+        }
+        
+        if (isExpired) {
+          // Clear expired session
+          localStorage.removeItem(sessionKey);
+        }
+      } catch {
+        localStorage.removeItem(sessionKey);
+      }
+    }
+    
+    setLockedTable(table);
   }, [table, settings.tableCount, navigate]);
 
   // Keep customer "logged in" (persist phone per table)
   useEffect(() => {
-    if (!table) return;
-    const key = `chiyadani:customerSession:table:${table}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
-
-    try {
-      const parsed = JSON.parse(raw) as { phone?: string; isPhoneEntered?: boolean };
-      if (parsed.phone && parsed.phone.length >= 10) {
-        setPhone(parsed.phone);
-        setIsPhoneEntered(Boolean(parsed.isPhoneEntered));
+    if (!lockedTable) return;
+    
+    const sessionKey = 'chiyadani:customerActiveSession';
+    const existingSession = localStorage.getItem(sessionKey);
+    
+    if (existingSession) {
+      try {
+        const session = JSON.parse(existingSession) as { table: number; phone?: string; isPhoneEntered?: boolean; timestamp: number };
+        // Only restore if same table or create new session
+        if (session.table === lockedTable && session.phone && session.phone.length >= 10) {
+          setPhone(session.phone);
+          setIsPhoneEntered(Boolean(session.isPhoneEntered));
+        }
+      } catch {
+        // ignore invalid session
       }
-    } catch {
-      // ignore invalid session
     }
-  }, [table]);
+  }, [lockedTable]);
 
   const categories: Category[] = ['Favorites', 'Tea', 'Snacks', 'Cold Drink', 'Pastry'];
   
@@ -181,9 +217,15 @@ export default function TableOrder() {
       return;
     }
 
-    if (table) {
-      const key = `chiyadani:customerSession:table:${table}`;
-      localStorage.setItem(key, JSON.stringify({ phone, isPhoneEntered: true }));
+    if (lockedTable) {
+      // Store unified session with table lock
+      const sessionKey = 'chiyadani:customerActiveSession';
+      localStorage.setItem(sessionKey, JSON.stringify({ 
+        table: lockedTable, 
+        phone, 
+        isPhoneEntered: true,
+        timestamp: Date.now()
+      }));
     }
 
     setIsPhoneEntered(true);
@@ -411,7 +453,9 @@ export default function TableOrder() {
                         </button>
                       </div>
                       <p className="font-medium text-[#333]">रू{item.price}</p>
-                      
+                      {item.description && (
+                        <p className="text-xs text-[#888] mt-1 line-clamp-2">{item.description}</p>
+                      )}
                       <div className="mt-3">
                         {qty === 0 ? (
                           <button
@@ -439,12 +483,20 @@ export default function TableOrder() {
                         )}
                       </div>
                     </div>
-                    <div className="w-[100px] h-[100px] rounded-xl bg-[#eee] overflow-hidden">
-                      <img 
-                        src={`https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=200&auto=format&fit=crop`}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-[100px] h-[100px] rounded-xl bg-[#eee] overflow-hidden flex-shrink-0">
+                      {item.image ? (
+                        <img 
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img 
+                          src={`https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=200&auto=format&fit=crop`}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                   </div>
                 );

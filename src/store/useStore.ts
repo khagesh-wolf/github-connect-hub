@@ -7,27 +7,27 @@ const generateId = () => Math.random().toString(36).substring(2, 11);
 
 const defaultMenuItems: MenuItem[] = [
   // Tea
-  { id: '1', name: 'Masala Chai', price: 30, category: 'Tea', available: true },
-  { id: '2', name: 'Ginger Tea', price: 35, category: 'Tea', available: true },
-  { id: '3', name: 'Green Tea', price: 40, category: 'Tea', available: true },
-  { id: '4', name: 'Black Tea', price: 25, category: 'Tea', available: true },
-  { id: '5', name: 'Milk Tea', price: 30, category: 'Tea', available: true },
-  { id: '6', name: 'Lemon Tea', price: 35, category: 'Tea', available: true },
+  { id: '1', name: 'Masala Chai', price: 30, category: 'Tea', available: true, description: 'Classic spiced tea with aromatic spices' },
+  { id: '2', name: 'Ginger Tea', price: 35, category: 'Tea', available: true, description: 'Fresh ginger infused black tea' },
+  { id: '3', name: 'Green Tea', price: 40, category: 'Tea', available: true, description: 'Healthy green tea with antioxidants' },
+  { id: '4', name: 'Black Tea', price: 25, category: 'Tea', available: true, description: 'Strong black tea blend' },
+  { id: '5', name: 'Milk Tea', price: 30, category: 'Tea', available: true, description: 'Creamy milk tea with perfect balance' },
+  { id: '6', name: 'Lemon Tea', price: 35, category: 'Tea', available: true, description: 'Refreshing tea with fresh lemon' },
   // Snacks
-  { id: '7', name: 'Samosa', price: 25, category: 'Snacks', available: true },
-  { id: '8', name: 'Pakoda', price: 40, category: 'Snacks', available: true },
-  { id: '9', name: 'Sandwich', price: 60, category: 'Snacks', available: true },
-  { id: '10', name: 'Momo (Veg)', price: 80, category: 'Snacks', available: true },
-  { id: '11', name: 'Momo (Chicken)', price: 100, category: 'Snacks', available: true },
+  { id: '7', name: 'Samosa', price: 25, category: 'Snacks', available: true, description: 'Crispy fried pastry with spiced potato filling' },
+  { id: '8', name: 'Pakoda', price: 40, category: 'Snacks', available: true, description: 'Mixed vegetable fritters' },
+  { id: '9', name: 'Sandwich', price: 60, category: 'Snacks', available: true, description: 'Grilled sandwich with vegetables' },
+  { id: '10', name: 'Momo (Veg)', price: 80, category: 'Snacks', available: true, description: 'Steamed vegetable dumplings' },
+  { id: '11', name: 'Momo (Chicken)', price: 100, category: 'Snacks', available: true, description: 'Steamed chicken dumplings' },
   // Cold Drinks
-  { id: '12', name: 'Coca Cola', price: 40, category: 'Cold Drink', available: true },
-  { id: '13', name: 'Sprite', price: 40, category: 'Cold Drink', available: true },
-  { id: '14', name: 'Iced Tea', price: 50, category: 'Cold Drink', available: true },
-  { id: '15', name: 'Lassi', price: 60, category: 'Cold Drink', available: true },
+  { id: '12', name: 'Coca Cola', price: 40, category: 'Cold Drink', available: true, description: 'Chilled Coca Cola' },
+  { id: '13', name: 'Sprite', price: 40, category: 'Cold Drink', available: true, description: 'Refreshing lemon-lime soda' },
+  { id: '14', name: 'Iced Tea', price: 50, category: 'Cold Drink', available: true, description: 'Cold brewed iced tea' },
+  { id: '15', name: 'Lassi', price: 60, category: 'Cold Drink', available: true, description: 'Traditional yogurt drink' },
   // Pastry
-  { id: '16', name: 'Chocolate Cake', price: 80, category: 'Pastry', available: true },
-  { id: '17', name: 'Vanilla Pastry', price: 60, category: 'Pastry', available: true },
-  { id: '18', name: 'Brownie', price: 70, category: 'Pastry', available: true },
+  { id: '16', name: 'Chocolate Cake', price: 80, category: 'Pastry', available: true, description: 'Rich chocolate layer cake' },
+  { id: '17', name: 'Vanilla Pastry', price: 60, category: 'Pastry', available: true, description: 'Soft vanilla cream pastry' },
+  { id: '18', name: 'Brownie', price: 70, category: 'Pastry', available: true, description: 'Fudgy chocolate brownie' },
 ];
 
 const defaultSettings: Settings = {
@@ -73,6 +73,7 @@ interface StoreState extends AuthState {
   updateMenuItem: (id: string, item: Partial<MenuItem>) => void;
   deleteMenuItem: (id: string) => void;
   toggleItemAvailability: (id: string) => void;
+  bulkToggleAvailability: (ids: string[], available: boolean) => void;
 
   // Orders
   orders: Order[];
@@ -158,6 +159,12 @@ export const useStore = create<StoreState>()(
       toggleItemAvailability: (id) => set((state) => ({
         menuItems: state.menuItems.map(m =>
           m.id === id ? { ...m, available: !m.available } : m
+        )
+      })),
+
+      bulkToggleAvailability: (ids, available) => set((state) => ({
+        menuItems: state.menuItems.map(m =>
+          ids.includes(m.id) ? { ...m, available } : m
         )
       })),
 

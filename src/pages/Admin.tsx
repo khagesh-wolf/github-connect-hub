@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Plus, Edit, Trash2, LogOut, Settings, LayoutDashboard, 
   UtensilsCrossed, Users, QrCode, History, TrendingUp, ShoppingBag, DollarSign,
-  Download, Search, Eye, UserCog, BarChart3, Calendar
+  Download, Search, Eye, UserCog, BarChart3, Calendar, Image as ImageIcon, ToggleLeft, ToggleRight
 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { formatNepalDateTime, formatNepalDateReadable } from '@/lib/nepalTime';
 import { QRCodeSVG } from 'qrcode.react';
@@ -26,6 +28,7 @@ export default function Admin() {
   const qrRef = useRef<HTMLDivElement>(null);
   const { 
     menuItems, addMenuItem, updateMenuItem, deleteMenuItem, toggleItemAvailability,
+    bulkToggleAvailability,
     customers, transactions, staff, settings, updateSettings,
     addStaff, updateStaff, deleteStaff,
     isAuthenticated, currentUser, logout, getTodayStats
@@ -34,9 +37,13 @@ export default function Admin() {
   const [tab, setTab] = useState('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const [newItem, setNewItem] = useState<{ name: string; price: string; category: Category }>({ 
-    name: '', price: '', category: 'Tea' 
+  const [newItem, setNewItem] = useState<{ name: string; price: string; category: Category; description: string; image: string }>({ 
+    name: '', price: '', category: 'Tea', description: '', image: ''
   });
+
+  // Menu search and bulk selection
+  const [menuSearch, setMenuSearch] = useState('');
+  const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
 
   // Search states
   const [customerSearch, setCustomerSearch] = useState('');
@@ -158,12 +165,75 @@ export default function Admin() {
       name: newItem.name, 
       price: parseFloat(newItem.price), 
       category: newItem.category, 
-      available: true 
+      available: true,
+      description: newItem.description || undefined,
+      image: newItem.image || undefined
     });
     toast.success('Item added');
-    setNewItem({ name: '', price: '', category: 'Tea' });
+    setNewItem({ name: '', price: '', category: 'Tea', description: '', image: '' });
     setIsAddingItem(false);
   };
+
+  // Handle image upload for menu items
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEditing: boolean) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be less than 2MB');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (isEditing && editingItem) {
+        setEditingItem({ ...editingItem, image: base64 });
+      } else {
+        setNewItem(prev => ({ ...prev, image: base64 }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Bulk availability toggle
+  const handleBulkToggle = (available: boolean) => {
+    if (selectedMenuItems.length === 0) {
+      toast.error('No items selected');
+      return;
+    }
+    bulkToggleAvailability(selectedMenuItems, available);
+    toast.success(`${selectedMenuItems.length} items ${available ? 'enabled' : 'disabled'}`);
+    setSelectedMenuItems([]);
+  };
+
+  const toggleSelectItem = (id: string) => {
+    setSelectedMenuItems(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllInCategory = (cat: Category) => {
+    const catItems = menuItems.filter(m => m.category === cat).map(m => m.id);
+    const allSelected = catItems.every(id => selectedMenuItems.includes(id));
+    if (allSelected) {
+      setSelectedMenuItems(prev => prev.filter(id => !catItems.includes(id)));
+    } else {
+      setSelectedMenuItems(prev => [...new Set([...prev, ...catItems])]);
+    }
+  };
+
+  // Filter menu items by search
+  const filteredMenuItems = menuItems.filter(item =>
+    item.name.toLowerCase().includes(menuSearch.toLowerCase()) ||
+    item.category.toLowerCase().includes(menuSearch.toLowerCase()) ||
+    (item.description && item.description.toLowerCase().includes(menuSearch.toLowerCase()))
+  );
 
   const handleUpdateItem = () => {
     if (!editingItem) return;
@@ -484,36 +554,111 @@ export default function Admin() {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Menu Management</h2>
-              <Button onClick={() => setIsAddingItem(true)} className="gradient-primary">
-                <Plus className="w-4 h-4 mr-2" /> Add Item
-              </Button>
+              <div className="flex gap-3">
+                {selectedMenuItems.length > 0 && (
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm text-muted-foreground">{selectedMenuItems.length} selected</span>
+                    <Button variant="outline" size="sm" onClick={() => handleBulkToggle(true)}>
+                      <ToggleRight className="w-4 h-4 mr-1" /> Enable All
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleBulkToggle(false)}>
+                      <ToggleLeft className="w-4 h-4 mr-1" /> Disable All
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedMenuItems([])}>
+                      Clear
+                    </Button>
+                  </div>
+                )}
+                <Button onClick={() => setIsAddingItem(true)} className="gradient-primary">
+                  <Plus className="w-4 h-4 mr-2" /> Add Item
+                </Button>
+              </div>
             </div>
-            {categories.map(cat => (
-              <div key={cat} className="mb-8">
-                <h3 className="font-bold text-lg mb-3 text-primary">{cat}</h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  {menuItems.filter(m => m.category === cat).map(item => (
-                    <div key={item.id} className={`bg-card rounded-xl border border-border p-4 ${!item.available ? 'opacity-50' : ''}`}>
-                      <div className="flex justify-between">
-                        <div>
-                          <h4 className="font-semibold">{item.name}</h4>
-                          <p className="text-primary font-bold">रू {item.price}</p>
+            
+            {/* Search */}
+            <div className="mb-6">
+              <div className="relative max-w-md">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search menu items..."
+                  value={menuSearch}
+                  onChange={e => setMenuSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {categories.map(cat => {
+              const catItems = filteredMenuItems.filter(m => m.category === cat);
+              if (catItems.length === 0 && menuSearch) return null;
+              
+              const allCatItems = menuItems.filter(m => m.category === cat);
+              const allSelected = allCatItems.length > 0 && allCatItems.every(m => selectedMenuItems.includes(m.id));
+              
+              return (
+                <div key={cat} className="mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={() => selectAllInCategory(cat)}
+                      className="w-4 h-4 rounded border-border accent-primary"
+                    />
+                    <h3 className="font-bold text-lg text-primary">{cat}</h3>
+                    <span className="text-sm text-muted-foreground">({catItems.length} items)</span>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {(menuSearch ? catItems : allCatItems).map(item => (
+                      <div 
+                        key={item.id} 
+                        className={`bg-card rounded-xl border border-border p-4 transition-all ${!item.available ? 'opacity-50' : ''} ${selectedMenuItems.includes(item.id) ? 'ring-2 ring-primary' : ''}`}
+                      >
+                        <div className="flex gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedMenuItems.includes(item.id)}
+                            onChange={() => toggleSelectItem(item.id)}
+                            className="w-4 h-4 mt-1 rounded border-border accent-primary"
+                          />
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.name} 
+                              className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                              <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold truncate">{item.name}</h4>
+                            <p className="text-primary font-bold">रू {item.price}</p>
+                            {item.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{item.description}</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => toggleItemAvailability(item.id)} className="text-muted-foreground hover:text-foreground">
-                            {item.available ? '✓' : '✗'}
+                        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-border">
+                          <button 
+                            onClick={() => toggleItemAvailability(item.id)} 
+                            className={`text-sm px-2 py-1 rounded ${item.available ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}
+                          >
+                            {item.available ? 'Available' : 'Unavailable'}
                           </button>
-                          <button onClick={() => setEditingItem(item)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
+                          <button onClick={() => setEditingItem(item)}>
+                            <Edit className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                          </button>
                           <button onClick={() => { deleteMenuItem(item.id); toast.success('Deleted'); }}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-4 h-4 text-destructive hover:text-destructive/80" />
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -755,7 +900,7 @@ export default function Admin() {
 
       {/* Add Item Modal */}
       <Dialog open={isAddingItem} onOpenChange={setIsAddingItem}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Add Menu Item</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <Input placeholder="Item name" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
@@ -764,9 +909,44 @@ export default function Admin() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Description</label>
+              <Textarea 
+                placeholder="Brief description of the item..."
+                value={newItem.description}
+                onChange={e => setNewItem({ ...newItem, description: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Image</label>
+              <div className="flex gap-3 items-center">
+                {newItem.image ? (
+                  <img src={newItem.image} alt="Preview" className="w-16 h-16 rounded-lg object-cover" />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+                    <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <Input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => handleImageUpload(e, false)}
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Max 2MB, JPG/PNG</p>
+                </div>
+                {newItem.image && (
+                  <Button variant="ghost" size="sm" onClick={() => setNewItem({ ...newItem, image: '' })}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddingItem(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setIsAddingItem(false); setNewItem({ name: '', price: '', category: 'Tea', description: '', image: '' }); }}>Cancel</Button>
             <Button onClick={handleAddItem} className="gradient-primary">Add Item</Button>
           </DialogFooter>
         </DialogContent>
@@ -774,7 +954,7 @@ export default function Admin() {
 
       {/* Edit Item Modal */}
       <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Edit Item</DialogTitle></DialogHeader>
           {editingItem && (
             <div className="space-y-4 py-4">
@@ -784,6 +964,48 @@ export default function Admin() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Description</label>
+                <Textarea 
+                  placeholder="Brief description of the item..."
+                  value={editingItem.description || ''}
+                  onChange={e => setEditingItem({ ...editingItem, description: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Image</label>
+                <div className="flex gap-3 items-center">
+                  {editingItem.image ? (
+                    <img src={editingItem.image} alt="Preview" className="w-16 h-16 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+                      <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <Input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => handleImageUpload(e, true)}
+                      className="text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Max 2MB, JPG/PNG</p>
+                  </div>
+                  {editingItem.image && (
+                    <Button variant="ghost" size="sm" onClick={() => setEditingItem({ ...editingItem, image: undefined })}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Available</label>
+                <Switch 
+                  checked={editingItem.available} 
+                  onCheckedChange={(checked) => setEditingItem({ ...editingItem, available: checked })}
+                />
+              </div>
             </div>
           )}
           <DialogFooter>
