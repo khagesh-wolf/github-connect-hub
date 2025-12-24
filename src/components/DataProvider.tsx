@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { wsSync } from '@/lib/websocketSync';
 import {
@@ -28,10 +28,14 @@ export function DataProvider({ children }: DataProviderProps) {
   const [error, setError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
   const [serverUrl, setServerUrl] = useState(getApiBaseUrl());
+  const hasLoadedRef = useRef(false);
 
-  const store = useStore();
+  const loadDataFromBackend = async () => {
+    if (hasLoadedRef.current) {
+      console.log('[DataProvider] Already loaded, skipping...');
+      return;
+    }
 
-  const loadDataFromBackend = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -58,6 +62,7 @@ export function DataProvider({ children }: DataProviderProps) {
       ]);
 
       // Update store with backend data
+      const store = useStore.getState();
       store.setMenuItems(menuItems || []);
       store.setOrders(orders || []);
       store.setBills(bills || []);
@@ -69,6 +74,7 @@ export function DataProvider({ children }: DataProviderProps) {
       store.setTransactions(transactions || []);
       store.setDataLoaded(true);
 
+      hasLoadedRef.current = true;
       console.log('[DataProvider] Successfully loaded data from backend');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect to backend';
@@ -77,18 +83,49 @@ export function DataProvider({ children }: DataProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [store]);
+  };
+
+  const refreshData = async () => {
+    try {
+      const [menuItems, orders, bills, customers, staff, settings, expenses, waiterCalls, transactions] = await Promise.all([
+        menuApi.getAll().catch(() => []),
+        ordersApi.getAll().catch(() => []),
+        billsApi.getAll().catch(() => []),
+        customersApi.getAll().catch(() => []),
+        staffApi.getAll().catch(() => []),
+        settingsApi.get().catch(() => null),
+        expensesApi.getAll().catch(() => []),
+        waiterCallsApi.getAll().catch(() => []),
+        transactionsApi.getAll().catch(() => []),
+      ]);
+
+      const store = useStore.getState();
+      store.setMenuItems(menuItems || []);
+      store.setOrders(orders || []);
+      store.setBills(bills || []);
+      store.setCustomers(customers || []);
+      store.setStaff(staff || []);
+      store.setSettings(settings);
+      store.setExpenses(expenses || []);
+      store.setWaiterCalls(waiterCalls || []);
+      store.setTransactions(transactions || []);
+
+      console.log('[DataProvider] Refreshed data from backend');
+    } catch (err) {
+      console.error('[DataProvider] Refresh error:', err);
+    }
+  };
 
   // Set up WebSocket event handlers for real-time updates
   useEffect(() => {
     const unsubscribers: (() => void)[] = [];
 
-    // Connection status handler
+    // Connection status handler - only refresh on reconnection, not initial
     unsubscribers.push(
       wsSync.on('connection', (data) => {
         console.log('[DataProvider] WebSocket connection status:', data.status);
-        if (data.status === 'connected') {
-          loadDataFromBackend();
+        if (data.status === 'connected' && hasLoadedRef.current) {
+          refreshData();
         }
       })
     );
@@ -98,7 +135,7 @@ export function DataProvider({ children }: DataProviderProps) {
       wsSync.on('MENU_UPDATE', async () => {
         console.log('[DataProvider] Received MENU_UPDATE');
         const menuItems = await menuApi.getAll();
-        store.setMenuItems(menuItems);
+        useStore.getState().setMenuItems(menuItems);
       })
     );
 
@@ -107,7 +144,7 @@ export function DataProvider({ children }: DataProviderProps) {
       wsSync.on('STAFF_UPDATE', async () => {
         console.log('[DataProvider] Received STAFF_UPDATE');
         const staff = await staffApi.getAll();
-        store.setStaff(staff);
+        useStore.getState().setStaff(staff);
       })
     );
 
@@ -116,7 +153,7 @@ export function DataProvider({ children }: DataProviderProps) {
       wsSync.on('ORDER_UPDATE', async () => {
         console.log('[DataProvider] Received ORDER_UPDATE');
         const orders = await ordersApi.getAll();
-        store.setOrders(orders);
+        useStore.getState().setOrders(orders);
       })
     );
 
@@ -128,6 +165,7 @@ export function DataProvider({ children }: DataProviderProps) {
           billsApi.getAll(),
           transactionsApi.getAll(),
         ]);
+        const store = useStore.getState();
         store.setBills(bills);
         store.setTransactions(transactions);
       })
@@ -138,7 +176,7 @@ export function DataProvider({ children }: DataProviderProps) {
       wsSync.on('CUSTOMER_UPDATE', async () => {
         console.log('[DataProvider] Received CUSTOMER_UPDATE');
         const customers = await customersApi.getAll();
-        store.setCustomers(customers);
+        useStore.getState().setCustomers(customers);
       })
     );
 
@@ -147,7 +185,7 @@ export function DataProvider({ children }: DataProviderProps) {
       wsSync.on('WAITER_CALL', async () => {
         console.log('[DataProvider] Received WAITER_CALL');
         const waiterCalls = await waiterCallsApi.getAll();
-        store.setWaiterCalls(waiterCalls);
+        useStore.getState().setWaiterCalls(waiterCalls);
       })
     );
 
@@ -156,7 +194,7 @@ export function DataProvider({ children }: DataProviderProps) {
       wsSync.on('SETTINGS_UPDATE', async () => {
         console.log('[DataProvider] Received SETTINGS_UPDATE');
         const settings = await settingsApi.get();
-        store.setSettings(settings);
+        useStore.getState().setSettings(settings);
       })
     );
 
@@ -165,7 +203,7 @@ export function DataProvider({ children }: DataProviderProps) {
       wsSync.on('EXPENSE_UPDATE', async () => {
         console.log('[DataProvider] Received EXPENSE_UPDATE');
         const expenses = await expensesApi.getAll();
-        store.setExpenses(expenses);
+        useStore.getState().setExpenses(expenses);
       })
     );
 
@@ -175,12 +213,18 @@ export function DataProvider({ children }: DataProviderProps) {
     return () => {
       unsubscribers.forEach(unsub => unsub());
     };
-  }, [loadDataFromBackend, store]);
+  }, []);
 
   const handleSaveUrl = () => {
     localStorage.setItem('api_base_url', serverUrl);
     toast.success('Server URL updated. Reconnecting...');
     setShowConfig(false);
+    hasLoadedRef.current = false;
+    loadDataFromBackend();
+  };
+
+  const handleRetry = () => {
+    hasLoadedRef.current = false;
     loadDataFromBackend();
   };
 
@@ -233,7 +277,7 @@ export function DataProvider({ children }: DataProviderProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              <Button onClick={loadDataFromBackend} className="w-full gap-2">
+              <Button onClick={handleRetry} className="w-full gap-2">
                 <Server className="h-4 w-4" />
                 Try Again
               </Button>
