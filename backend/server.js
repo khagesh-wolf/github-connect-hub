@@ -366,10 +366,23 @@ app.post('/api/bills', (req, res) => {
 
 app.put('/api/bills/:id/pay', (req, res) => {
   const { paymentMethod, paidAt } = req.body;
+  
+  // Update bill status
   runQuery(`
     UPDATE bills SET status='paid', payment_method=?, paid_at=? WHERE id=?
   `, [paymentMethod, paidAt, req.params.id]);
+  
+  // Get all orders associated with this bill and mark them as 'served'
+  const billOrders = queryAll('SELECT order_id FROM bill_orders WHERE bill_id=?', [req.params.id]);
+  const now = new Date().toISOString();
+  billOrders.forEach(bo => {
+    runQuery('UPDATE orders SET status=?, updated_at=? WHERE id=?', ['served', now, bo.order_id]);
+  });
+  
+  // Broadcast both bill and order updates
   broadcast('BILL_UPDATE', { action: 'pay', id: req.params.id, paymentMethod, paidAt });
+  broadcast('ORDER_UPDATE', { action: 'bulk_status', orderIds: billOrders.map(bo => bo.order_id), status: 'served' });
+  
   res.json({ success: true });
 });
 
