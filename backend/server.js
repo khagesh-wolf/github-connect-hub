@@ -122,17 +122,43 @@ async function initDatabase() {
       facebook_url TEXT,
       tiktok_url TEXT,
       google_review_url TEXT,
-      counter_as_admin INTEGER DEFAULT 0
+      counter_as_admin INTEGER DEFAULT 0,
+      point_system_enabled INTEGER DEFAULT 0,
+      points_per_rupee REAL DEFAULT 0.1,
+      point_value_in_rupees REAL DEFAULT 1,
+      max_discount_rupees REAL,
+      max_discount_points INTEGER
     );
   `);
   
-  // Migration: Add counter_as_admin column if it doesn't exist
+  // Migration: Add missing columns if they don't exist
   try {
     const columns = db.pragma('table_info(settings)');
-    const hasColumn = columns.some(col => col.name === 'counter_as_admin');
-    if (!hasColumn) {
+    const columnNames = columns.map(col => col.name);
+    
+    if (!columnNames.includes('counter_as_admin')) {
       db.exec(`ALTER TABLE settings ADD COLUMN counter_as_admin INTEGER DEFAULT 0`);
       console.log('[DB] Added counter_as_admin column to settings table');
+    }
+    if (!columnNames.includes('point_system_enabled')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN point_system_enabled INTEGER DEFAULT 0`);
+      console.log('[DB] Added point_system_enabled column to settings table');
+    }
+    if (!columnNames.includes('points_per_rupee')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN points_per_rupee REAL DEFAULT 0.1`);
+      console.log('[DB] Added points_per_rupee column to settings table');
+    }
+    if (!columnNames.includes('point_value_in_rupees')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN point_value_in_rupees REAL DEFAULT 1`);
+      console.log('[DB] Added point_value_in_rupees column to settings table');
+    }
+    if (!columnNames.includes('max_discount_rupees')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN max_discount_rupees REAL`);
+      console.log('[DB] Added max_discount_rupees column to settings table');
+    }
+    if (!columnNames.includes('max_discount_points')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN max_discount_points INTEGER`);
+      console.log('[DB] Added max_discount_points column to settings table');
     }
   } catch (e) {
     console.error('[DB] Migration error:', e.message);
@@ -588,19 +614,34 @@ app.get('/api/settings', (req, res) => {
     facebookUrl: settings?.facebook_url,
     tiktokUrl: settings?.tiktok_url,
     googleReviewUrl: settings?.google_review_url,
-    counterAsAdmin: Boolean(settings?.counter_as_admin)
+    counterAsAdmin: Boolean(settings?.counter_as_admin),
+    pointSystemEnabled: Boolean(settings?.point_system_enabled),
+    pointsPerRupee: settings?.points_per_rupee ?? 0.1,
+    pointValueInRupees: settings?.point_value_in_rupees ?? 1,
+    maxDiscountRupees: settings?.max_discount_rupees,
+    maxDiscountPoints: settings?.max_discount_points
   });
 });
 
 app.put('/api/settings', (req, res) => {
-  const { restaurantName, tableCount, wifiSSID, wifiPassword, baseUrl, logo, instagramUrl, facebookUrl, tiktokUrl, googleReviewUrl, counterAsAdmin } = req.body;
+  const { 
+    restaurantName, tableCount, wifiSSID, wifiPassword, baseUrl, logo, 
+    instagramUrl, facebookUrl, tiktokUrl, googleReviewUrl, counterAsAdmin,
+    pointSystemEnabled, pointsPerRupee, pointValueInRupees, maxDiscountRupees, maxDiscountPoints
+  } = req.body;
   runQuery(`
     UPDATE settings SET 
       restaurant_name=?, table_count=?, wifi_ssid=?, wifi_password=?, base_url=?, 
       logo=?, instagram_url=?, facebook_url=?, tiktok_url=?, google_review_url=?,
-      counter_as_admin=?
+      counter_as_admin=?, point_system_enabled=?, points_per_rupee=?, point_value_in_rupees=?,
+      max_discount_rupees=?, max_discount_points=?
     WHERE id=1
-  `, [restaurantName, tableCount, wifiSSID, wifiPassword, baseUrl, logo, instagramUrl, facebookUrl, tiktokUrl, googleReviewUrl, counterAsAdmin ? 1 : 0]);
+  `, [
+    restaurantName, tableCount, wifiSSID, wifiPassword, baseUrl, logo, 
+    instagramUrl, facebookUrl, tiktokUrl, googleReviewUrl, 
+    counterAsAdmin ? 1 : 0, pointSystemEnabled ? 1 : 0, 
+    pointsPerRupee, pointValueInRupees, maxDiscountRupees, maxDiscountPoints
+  ]);
   broadcast('SETTINGS_UPDATE', req.body);
   res.json({ success: true });
 });
