@@ -70,7 +70,7 @@ export const billsApi = {
   }),
   pay: (id: string, paymentMethod: string) => apiFetch<any>(`/api/bills/${id}/pay`, {
     method: 'PUT',
-    body: JSON.stringify({ paymentMethod }),
+    body: JSON.stringify({ paymentMethod, paidAt: new Date().toISOString() }),
   }),
 };
 

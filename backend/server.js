@@ -184,6 +184,11 @@ function runQuery(sql, params = []) {
 app.use(cors());
 app.use(express.json());
 
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
 // Broadcast to all connected clients
 function broadcast(type, data) {
   const message = JSON.stringify({ type, data });
@@ -348,6 +353,12 @@ app.put('/api/bills/:id/pay', (req, res) => {
   `, [paymentMethod, paidAt, req.params.id]);
   broadcast('BILL_UPDATE', { action: 'pay', id: req.params.id, paymentMethod, paidAt });
   res.json({ success: true });
+});
+
+// ============ TRANSACTIONS (stub) ============
+// Frontend expects this endpoint during initial sync.
+app.get('/api/transactions', (req, res) => {
+  res.json([]);
 });
 
 // ============ CUSTOMERS ============
