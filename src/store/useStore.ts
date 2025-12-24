@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   Bill,
+  Category,
   Customer,
   Expense,
   MenuItem,
@@ -13,7 +14,7 @@ import {
   WaiterCall,
 } from '@/types';
 import { getNepalTimestamp, isToday } from '@/lib/nepalTime';
-import { billsApi, customersApi, ordersApi, menuApi, settingsApi, expensesApi, waiterCallsApi, staffApi, transactionsApi } from '@/lib/apiClient';
+import { billsApi, customersApi, ordersApi, menuApi, settingsApi, expensesApi, waiterCallsApi, staffApi, transactionsApi, categoriesApi } from '@/lib/apiClient';
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
 
@@ -74,6 +75,13 @@ interface StoreState extends AuthState {
   // Auth
   login: (username: string, password: string) => boolean;
   logout: () => void;
+
+  // Categories
+  categories: Category[];
+  setCategories: (categories: Category[]) => void;
+  addCategory: (name: string) => void;
+  updateCategory: (id: string, name: string) => void;
+  deleteCategory: (id: string) => void;
 
   // Menu
   menuItems: MenuItem[];
@@ -169,6 +177,32 @@ export const useStore = create<StoreState>()((set, get) => ({
     localStorage.removeItem('chiyadani_auth');
     localStorage.removeItem('chiyadani_user');
     set({ isAuthenticated: false, currentUser: null });
+  },
+
+  // Categories - starts empty, loaded from backend
+  categories: [],
+  setCategories: (categories) => set({ categories }),
+
+  addCategory: (name) => {
+    const maxOrder = Math.max(0, ...get().categories.map(c => c.sortOrder));
+    const newCategory = { id: generateId(), name, sortOrder: maxOrder + 1 };
+    set((state) => ({ categories: [...state.categories, newCategory] }));
+    syncToBackend(() => categoriesApi.create(newCategory));
+  },
+
+  updateCategory: (id, name) => {
+    const category = get().categories.find(c => c.id === id);
+    if (!category) return;
+    const updated = { ...category, name };
+    set((state) => ({
+      categories: state.categories.map(c => c.id === id ? updated : c)
+    }));
+    syncToBackend(() => categoriesApi.update(id, updated));
+  },
+
+  deleteCategory: (id) => {
+    set((state) => ({ categories: state.categories.filter(c => c.id !== id) }));
+    syncToBackend(() => categoriesApi.delete(id));
   },
 
   // Menu - starts empty, loaded from backend

@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Plus, Edit, Trash2, LogOut, Settings, LayoutDashboard, 
   UtensilsCrossed, Users, QrCode, History, TrendingUp, ShoppingBag, DollarSign,
-  Download, Search, Eye, UserCog, BarChart3, Calendar, Image as ImageIcon, ToggleLeft, ToggleRight
+  Download, Search, Eye, UserCog, BarChart3, Calendar, Image as ImageIcon, ToggleLeft, ToggleRight,
+  Check, X
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -32,9 +33,6 @@ import {
   sanitizeText
 } from '@/lib/validation';
 
-type Category = 'Tea' | 'Snacks' | 'Cold Drink' | 'Pastry';
-const categories: Category[] = ['Tea', 'Snacks', 'Cold Drink', 'Pastry'];
-
 const COLORS = ['#06C167', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
 export default function Admin() {
@@ -43,6 +41,7 @@ export default function Admin() {
   const { 
     menuItems, addMenuItem, updateMenuItem, deleteMenuItem, toggleItemAvailability,
     bulkToggleAvailability,
+    categories, addCategory, updateCategory, deleteCategory,
     customers, transactions, staff, settings, updateSettings,
     addStaff, updateStaff, deleteStaff,
     isAuthenticated, currentUser, logout, getTodayStats
@@ -51,9 +50,14 @@ export default function Admin() {
   const [tab, setTab] = useState('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const [newItem, setNewItem] = useState<{ name: string; price: string; category: Category; description: string; image: string }>({ 
-    name: '', price: '', category: 'Tea', description: '', image: ''
+  const [newItem, setNewItem] = useState<{ name: string; price: string; category: string; description: string; image: string }>({ 
+    name: '', price: '', category: '', description: '', image: ''
   });
+
+  // Category management
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string } | null>(null);
 
   // Menu search and bulk selection
   const [menuSearch, setMenuSearch] = useState('');
@@ -316,8 +320,8 @@ export default function Admin() {
     );
   };
 
-  const selectAllInCategory = (cat: Category) => {
-    const catItems = menuItems.filter(m => m.category === cat).map(m => m.id);
+  const selectAllInCategory = (catName: string) => {
+    const catItems = menuItems.filter(m => m.category === catName).map(m => m.id);
     const allSelected = catItems.every(id => selectedMenuItems.includes(id));
     if (allSelected) {
       setSelectedMenuItems(prev => prev.filter(id => !catItems.includes(id)));
@@ -954,6 +958,9 @@ export default function Admin() {
                     </Button>
                   </div>
                 )}
+                <Button variant="outline" onClick={() => setShowCategoryManager(true)}>
+                  <Settings className="w-4 h-4 mr-2" /> Categories
+                </Button>
                 <Button onClick={() => setIsAddingItem(true)} className="gradient-primary">
                   <Plus className="w-4 h-4 mr-2" /> Add Item
                 </Button>
@@ -974,22 +981,22 @@ export default function Admin() {
             </div>
 
             {categories.map(cat => {
-              const catItems = filteredMenuItems.filter(m => m.category === cat);
+              const catItems = filteredMenuItems.filter(m => m.category === cat.name);
               if (catItems.length === 0 && menuSearch) return null;
               
-              const allCatItems = menuItems.filter(m => m.category === cat);
+              const allCatItems = menuItems.filter(m => m.category === cat.name);
               const allSelected = allCatItems.length > 0 && allCatItems.every(m => selectedMenuItems.includes(m.id));
               
               return (
-                <div key={cat} className="mb-8">
+                <div key={cat.id} className="mb-8">
                   <div className="flex items-center gap-3 mb-3">
                     <input
                       type="checkbox"
                       checked={allSelected}
-                      onChange={() => selectAllInCategory(cat)}
+                      onChange={() => selectAllInCategory(cat.name)}
                       className="w-4 h-4 rounded border-border accent-primary"
                     />
-                    <h3 className="font-bold text-lg text-primary">{cat}</h3>
+                    <h3 className="font-bold text-lg text-primary">{cat.name}</h3>
                     <span className="text-sm text-muted-foreground">({catItems.length} items)</span>
                   </div>
                   <div className="grid md:grid-cols-3 gap-4">
@@ -1463,9 +1470,9 @@ export default function Admin() {
           <div className="space-y-4 py-4">
             <Input placeholder="Item name" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
             <Input placeholder="Price" type="number" value={newItem.price} onChange={e => setNewItem({ ...newItem, price: e.target.value })} />
-            <Select value={newItem.category} onValueChange={(v: Category) => setNewItem({ ...newItem, category: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            <Select value={newItem.category} onValueChange={(v: string) => setNewItem({ ...newItem, category: v })}>
+              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
             <div>
               <label className="text-sm font-medium mb-2 block">Description</label>
@@ -1504,7 +1511,7 @@ export default function Admin() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setIsAddingItem(false); setNewItem({ name: '', price: '', category: 'Tea', description: '', image: '' }); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setIsAddingItem(false); setNewItem({ name: '', price: '', category: '', description: '', image: '' }); }}>Cancel</Button>
             <Button onClick={handleAddItem} className="gradient-primary">Add Item</Button>
           </DialogFooter>
         </DialogContent>
@@ -1518,9 +1525,9 @@ export default function Admin() {
             <div className="space-y-4 py-4">
               <Input value={editingItem.name} onChange={e => setEditingItem({ ...editingItem, name: e.target.value })} />
               <Input type="number" value={editingItem.price} onChange={e => setEditingItem({ ...editingItem, price: parseFloat(e.target.value) })} />
-              <Select value={editingItem.category} onValueChange={(v: Category) => setEditingItem({ ...editingItem, category: v })}>
+              <Select value={editingItem.category} onValueChange={(v: string) => setEditingItem({ ...editingItem, category: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
               <div>
                 <label className="text-sm font-medium mb-2 block">Description</label>
@@ -1569,6 +1576,116 @@ export default function Admin() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingItem(null)}>Cancel</Button>
             <Button onClick={handleUpdateItem} className="gradient-primary">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Manager Modal */}
+      <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Manage Categories</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Add new category */}
+            <div className="flex gap-2">
+              <Input 
+                placeholder="New category name"
+                value={newCategoryName}
+                onChange={e => setNewCategoryName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newCategoryName.trim()) {
+                    addCategory(newCategoryName.trim());
+                    setNewCategoryName('');
+                    toast.success('Category added');
+                  }
+                }}
+              />
+              <Button 
+                onClick={() => {
+                  if (newCategoryName.trim()) {
+                    addCategory(newCategoryName.trim());
+                    setNewCategoryName('');
+                    toast.success('Category added');
+                  }
+                }}
+                disabled={!newCategoryName.trim()}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {/* Category list */}
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {categories.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">No categories yet. Add one above.</p>
+              ) : (
+                categories.map(cat => (
+                  <div key={cat.id} className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                    {editingCategory?.id === cat.id ? (
+                      <>
+                        <Input 
+                          value={editingCategory.name}
+                          onChange={e => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && editingCategory.name.trim()) {
+                              updateCategory(cat.id, editingCategory.name.trim());
+                              setEditingCategory(null);
+                              toast.success('Category updated');
+                            } else if (e.key === 'Escape') {
+                              setEditingCategory(null);
+                            }
+                          }}
+                          autoFocus
+                          className="flex-1"
+                        />
+                        <Button size="sm" variant="ghost" onClick={() => {
+                          if (editingCategory.name.trim()) {
+                            updateCategory(cat.id, editingCategory.name.trim());
+                            setEditingCategory(null);
+                            toast.success('Category updated');
+                          }
+                        }}>
+                          <Check className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingCategory(null)}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 font-medium">{cat.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {menuItems.filter(m => m.category === cat.name).length} items
+                        </span>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingCategory({ id: cat.id, name: cat.name })}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => {
+                            const itemCount = menuItems.filter(m => m.category === cat.name).length;
+                            if (itemCount > 0) {
+                              toast.error(`Cannot delete: ${itemCount} items use this category`);
+                              return;
+                            }
+                            if (confirm(`Delete category "${cat.name}"?`)) {
+                              deleteCategory(cat.id);
+                              toast.success('Category deleted');
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowCategoryManager(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

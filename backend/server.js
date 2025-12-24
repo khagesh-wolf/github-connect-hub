@@ -139,6 +139,27 @@ async function initDatabase() {
   }
   
   db.run(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      sort_order INTEGER DEFAULT 0
+    );
+  `);
+
+  // Insert default categories if none exist
+  const existingCategories = queryAll('SELECT * FROM categories');
+  if (existingCategories.length === 0) {
+    const defaultCategories = ['Tea', 'Snacks', 'Cold Drink', 'Pastry'];
+    defaultCategories.forEach((name, index) => {
+      db.run(`INSERT INTO categories (id, name, sort_order) VALUES (?, ?, ?)`, [
+        Math.random().toString(36).substring(2, 11),
+        name,
+        index
+      ]);
+    });
+  }
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS expenses (
       id TEXT PRIMARY KEY,
       amount REAL NOT NULL,
@@ -233,6 +254,36 @@ function broadcast(type, data) {
   });
   console.log(`[Broadcast] ${type} sent to ${sentCount}/${wss.clients.size} clients`);
 }
+
+// ============ CATEGORIES ============
+app.get('/api/categories', (req, res) => {
+  const categories = queryAll('SELECT * FROM categories ORDER BY sort_order ASC');
+  res.json(categories.map(c => ({
+    id: c.id,
+    name: c.name,
+    sortOrder: c.sort_order
+  })));
+});
+
+app.post('/api/categories', (req, res) => {
+  const { id, name, sortOrder } = req.body;
+  runQuery(`INSERT INTO categories (id, name, sort_order) VALUES (?, ?, ?)`, [id, name, sortOrder || 0]);
+  broadcast('CATEGORIES_UPDATE', { action: 'add', category: req.body });
+  res.json({ success: true });
+});
+
+app.put('/api/categories/:id', (req, res) => {
+  const { name, sortOrder } = req.body;
+  runQuery(`UPDATE categories SET name=?, sort_order=? WHERE id=?`, [name, sortOrder || 0, req.params.id]);
+  broadcast('CATEGORIES_UPDATE', { action: 'update', category: { id: req.params.id, ...req.body } });
+  res.json({ success: true });
+});
+
+app.delete('/api/categories/:id', (req, res) => {
+  runQuery('DELETE FROM categories WHERE id=?', [req.params.id]);
+  broadcast('CATEGORIES_UPDATE', { action: 'delete', id: req.params.id });
+  res.json({ success: true });
+});
 
 // ============ MENU ITEMS ============
 app.get('/api/menu', (req, res) => {

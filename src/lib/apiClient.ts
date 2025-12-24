@@ -50,6 +50,22 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
   return response.json();
 }
 
+// Categories API
+export const categoriesApi = {
+  getAll: () => apiFetch<any[]>('/api/categories'),
+  create: (category: any) => apiFetch<any>('/api/categories', {
+    method: 'POST',
+    body: JSON.stringify(category),
+  }),
+  update: (id: string, category: any) => apiFetch<any>(`/api/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(category),
+  }),
+  delete: (id: string) => apiFetch<void>(`/api/categories/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
 // Menu Items API
 export const menuApi = {
   getAll: () => apiFetch<any[]>('/api/menu'),

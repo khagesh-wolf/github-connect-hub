@@ -11,6 +11,7 @@ import {
   expensesApi,
   waiterCallsApi,
   transactionsApi,
+  categoriesApi,
   checkBackendHealth,
   getApiBaseUrl,
 } from '@/lib/apiClient';
@@ -49,7 +50,7 @@ export function DataProvider({ children }: DataProviderProps) {
       wsSync.connect();
 
       // Fetch all data from backend
-      const [menuItems, orders, bills, customers, staff, settings, expenses, waiterCalls, transactions] = await Promise.all([
+      const [menuItems, orders, bills, customers, staff, settings, expenses, waiterCalls, transactions, categories] = await Promise.all([
         menuApi.getAll().catch(() => []),
         ordersApi.getAll().catch(() => []),
         billsApi.getAll().catch(() => []),
@@ -59,6 +60,7 @@ export function DataProvider({ children }: DataProviderProps) {
         expensesApi.getAll().catch(() => []),
         waiterCallsApi.getAll().catch(() => []),
         transactionsApi.getAll().catch(() => []),
+        categoriesApi.getAll().catch(() => []),
       ]);
 
       // Update store with backend data
@@ -72,6 +74,7 @@ export function DataProvider({ children }: DataProviderProps) {
       store.setExpenses(expenses || []);
       store.setWaiterCalls(waiterCalls || []);
       store.setTransactions(transactions || []);
+      store.setCategories(categories || []);
       store.setDataLoaded(true);
 
       hasLoadedRef.current = true;
@@ -87,7 +90,7 @@ export function DataProvider({ children }: DataProviderProps) {
 
   const refreshData = async () => {
     try {
-      const [menuItems, orders, bills, customers, staff, settings, expenses, waiterCalls, transactions] = await Promise.all([
+      const [menuItems, orders, bills, customers, staff, settings, expenses, waiterCalls, transactions, categories] = await Promise.all([
         menuApi.getAll().catch(() => []),
         ordersApi.getAll().catch(() => []),
         billsApi.getAll().catch(() => []),
@@ -97,6 +100,7 @@ export function DataProvider({ children }: DataProviderProps) {
         expensesApi.getAll().catch(() => []),
         waiterCallsApi.getAll().catch(() => []),
         transactionsApi.getAll().catch(() => []),
+        categoriesApi.getAll().catch(() => []),
       ]);
 
       const store = useStore.getState();
@@ -109,6 +113,7 @@ export function DataProvider({ children }: DataProviderProps) {
       store.setExpenses(expenses || []);
       store.setWaiterCalls(waiterCalls || []);
       store.setTransactions(transactions || []);
+      store.setCategories(categories || []);
 
       console.log('[DataProvider] Refreshed data from backend');
     } catch (err) {
@@ -206,6 +211,15 @@ export function DataProvider({ children }: DataProviderProps) {
         console.log('[DataProvider] Received EXPENSE_UPDATE');
         const expenses = await expensesApi.getAll();
         useStore.getState().setExpenses(expenses);
+      })
+    );
+
+    // Categories updates
+    unsubscribers.push(
+      wsSync.on('CATEGORIES_UPDATE', async () => {
+        console.log('[DataProvider] Received CATEGORIES_UPDATE');
+        const categories = await categoriesApi.getAll();
+        useStore.getState().setCategories(categories);
       })
     );
 

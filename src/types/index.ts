@@ -1,8 +1,14 @@
+export interface Category {
+  id: string;
+  name: string;
+  sortOrder: number;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
   price: number;
-  category: 'Tea' | 'Snacks' | 'Cold Drink' | 'Pastry';
+  category: string;
   available: boolean;
   description?: string;
   image?: string;
