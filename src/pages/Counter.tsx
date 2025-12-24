@@ -84,6 +84,20 @@ export default function Counter() {
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({ amount: '', description: '', category: 'other' as Expense['category'] });
 
+  const isDataLoaded = useStore(state => state.isDataLoaded);
+
+  // Show loading while data is being fetched
+  if (!isDataLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Redirect if not authenticated
   if (!isAuthenticated) {
     navigate('/auth');

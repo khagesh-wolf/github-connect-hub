@@ -78,6 +78,21 @@ export default function Admin() {
   const [analyticsDateFrom, setAnalyticsDateFrom] = useState(() => getNepalDateDaysAgo(30));
   const [analyticsDateTo, setAnalyticsDateTo] = useState(() => getNepalTodayString());
 
+  const isDataLoaded = useStore(state => state.isDataLoaded);
+
+  // Show loading while data is being fetched
+  if (!isDataLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="h-12 w-12 animate-spin mx-auto border-4 border-primary border-t-transparent rounded-full" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated or not admin
   if (!isAuthenticated || currentUser?.role !== 'admin') {
     navigate('/auth');
     return null;
