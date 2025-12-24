@@ -366,7 +366,202 @@ export default function Counter() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-[#f0f2f5] overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-screen bg-[#f0f2f5] overflow-hidden relative">
+      {/* Mobile Bottom Popup - Orders & Waiter Calls */}
+      {(pendingOrders.length > 0 || getPendingWaiterCalls().length > 0) && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#1a1a2e] via-[#16213e] to-[#0f3460] rounded-t-2xl shadow-2xl max-h-[45vh] flex flex-col animate-slide-up">
+          {/* Handle bar */}
+          <div className="flex justify-center py-2">
+            <div className="w-10 h-1 bg-white/30 rounded-full" />
+          </div>
+          
+          {/* Header */}
+          <div className="px-4 pb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-white font-semibold text-sm">
+                {pendingOrders.length} Orders • {getPendingWaiterCalls().length} Calls
+              </span>
+            </div>
+          </div>
+          
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+            {/* Waiter Calls */}
+            {getPendingWaiterCalls().slice(0, 2).map(call => (
+              <div 
+                key={call.id} 
+                className="rounded-xl p-3 relative overflow-hidden"
+                style={{
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  boxShadow: '0 4px 12px rgba(251,191,36,0.3)'
+                }}
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-bold text-gray-800 flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-amber-600" />
+                    Table {call.tableNumber}
+                  </span>
+                  <span className="text-xs text-gray-500">{formatNepalTime(call.createdAt)}</span>
+                </div>
+                <div className="text-xs text-gray-600 mb-2">Customer: {call.customerPhone}</div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    className="flex-1 h-8 text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
+                    onClick={() => {
+                      acknowledgeWaiterCall(call.id);
+                      toast.success(`Going to Table ${call.tableNumber}`);
+                    }}
+                  >
+                    <Check className="w-3 h-3 mr-1" /> On My Way
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="h-8 border-gray-300 text-gray-600"
+                    onClick={() => {
+                      dismissWaiterCall(call.id);
+                      toast.info('Dismissed');
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            
+            {/* Pending Orders */}
+            {pendingOrders.slice(0, 2).map(order => (
+              <div 
+                key={order.id} 
+                className="rounded-xl p-3 relative overflow-hidden bg-white"
+                style={{
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-400 to-orange-500" />
+                <div className="flex justify-between font-bold mb-1 text-gray-800">
+                  <span>Table {order.tableNumber}</span>
+                  <span className="text-xs font-normal text-gray-500">{formatNepalTime(order.createdAt)}</span>
+                </div>
+                <div className="text-xs text-gray-500 mb-1">Customer: {order.customerPhone}</div>
+                <div className="text-xs text-gray-600 mb-2">
+                  {order.items.slice(0, 3).map(i => `${i.qty}x ${i.name}`).join(', ')}
+                  {order.items.length > 3 && ` +${order.items.length - 3} more`}
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    className="flex-1 h-8 text-xs bg-gradient-to-r from-emerald-500 to-emerald-600 text-white"
+                    onClick={() => handleAccept(order)}
+                  >
+                    <Check className="w-3 h-3 mr-1" /> Accept
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="h-8 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white"
+                    onClick={() => handleReject(order.id)}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            
+            {/* Show more indicator */}
+            {(pendingOrders.length > 2 || getPendingWaiterCalls().length > 2) && (
+              <div className="text-center text-white/60 text-xs py-2">
+                Scroll for more • {Math.max(0, pendingOrders.length - 2) + Math.max(0, getPendingWaiterCalls().length - 2)} more items
+              </div>
+            )}
+            
+            {/* Show remaining items if scrolled */}
+            {getPendingWaiterCalls().slice(2).map(call => (
+              <div 
+                key={call.id} 
+                className="rounded-xl p-3 relative overflow-hidden"
+                style={{
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  boxShadow: '0 4px 12px rgba(251,191,36,0.3)'
+                }}
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-bold text-gray-800 flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-amber-600" />
+                    Table {call.tableNumber}
+                  </span>
+                  <span className="text-xs text-gray-500">{formatNepalTime(call.createdAt)}</span>
+                </div>
+                <div className="text-xs text-gray-600 mb-2">Customer: {call.customerPhone}</div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    className="flex-1 h-8 text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
+                    onClick={() => {
+                      acknowledgeWaiterCall(call.id);
+                      toast.success(`Going to Table ${call.tableNumber}`);
+                    }}
+                  >
+                    <Check className="w-3 h-3 mr-1" /> On My Way
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="h-8 border-gray-300 text-gray-600"
+                    onClick={() => {
+                      dismissWaiterCall(call.id);
+                      toast.info('Dismissed');
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            
+            {pendingOrders.slice(2).map(order => (
+              <div 
+                key={order.id} 
+                className="rounded-xl p-3 relative overflow-hidden bg-white"
+                style={{
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-400 to-orange-500" />
+                <div className="flex justify-between font-bold mb-1 text-gray-800">
+                  <span>Table {order.tableNumber}</span>
+                  <span className="text-xs font-normal text-gray-500">{formatNepalTime(order.createdAt)}</span>
+                </div>
+                <div className="text-xs text-gray-500 mb-1">Customer: {order.customerPhone}</div>
+                <div className="text-xs text-gray-600 mb-2">
+                  {order.items.slice(0, 3).map(i => `${i.qty}x ${i.name}`).join(', ')}
+                  {order.items.length > 3 && ` +${order.items.length - 3} more`}
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    className="flex-1 h-8 text-xs bg-gradient-to-r from-emerald-500 to-emerald-600 text-white"
+                    onClick={() => handleAccept(order)}
+                  >
+                    <Check className="w-3 h-3 mr-1" /> Accept
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="h-8 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white"
+                    onClick={() => handleReject(order.id)}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Sidebar - Incoming Orders & Waiter Calls - Hidden on mobile, shown on lg+ */}
       <div className="hidden lg:flex w-[350px] text-white flex-col relative overflow-hidden flex-shrink-0"
         style={{
