@@ -608,7 +608,15 @@ export default function TableOrder() {
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold mb-1">{item.name}</h3>
                         <button
-                          onClick={(e) => { e.stopPropagation(); hapticFavorite(); toggleFavorite(item.id); }}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            hapticFavorite(); 
+                            const btn = e.currentTarget;
+                            btn.classList.remove('heart-animate');
+                            void btn.offsetWidth; // Trigger reflow
+                            btn.classList.add('heart-animate');
+                            toggleFavorite(item.id); 
+                          }}
                           className="text-[#e74c3c]"
                         >
                           <Heart className="w-4 h-4 fill-current" />
@@ -685,7 +693,15 @@ export default function TableOrder() {
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold mb-1">{item.name}</h3>
                         <button
-                          onClick={(e) => { e.stopPropagation(); hapticFavorite(); toggleFavorite(item.id); }}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            hapticFavorite(); 
+                            const btn = e.currentTarget;
+                            btn.classList.remove('heart-animate');
+                            void btn.offsetWidth; // Trigger reflow
+                            btn.classList.add('heart-animate');
+                            toggleFavorite(item.id); 
+                          }}
                           className={isFav ? 'text-[#e74c3c]' : 'text-[#ccc]'}
                         >
                           <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
@@ -935,7 +951,7 @@ export default function TableOrder() {
             </button>
             <button
               onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(10);
+                hapticAddToCart(); // Light haptic for waiter call
                 const hasPendingCall = waiterCalls.some(
                   c => c.tableNumber === table && c.status === 'pending'
                 );
