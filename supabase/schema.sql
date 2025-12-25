@@ -8,6 +8,22 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ===========================================
+-- DROP EXISTING TABLES (Clean Slate)
+-- ===========================================
+
+DROP TABLE IF EXISTS payment_blocks CASCADE;
+DROP TABLE IF EXISTS waiter_calls CASCADE;
+DROP TABLE IF EXISTS expenses CASCADE;
+DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS bills CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS customers CASCADE;
+DROP TABLE IF EXISTS staff CASCADE;
+DROP TABLE IF EXISTS settings CASCADE;
+DROP TABLE IF EXISTS menu_items CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+
+-- ===========================================
 -- TABLES
 -- ===========================================
 
