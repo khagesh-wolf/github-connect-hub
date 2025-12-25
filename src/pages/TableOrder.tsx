@@ -125,12 +125,13 @@ export default function TableOrder() {
     }
   }, [navigate, table]);
 
-  // Auto-logout after 4 hours - check session validity
+  // Auto-logout table after 4 hours - keep phone number
   useEffect(() => {
     if (!isPWA()) return;
     
     const checkSessionExpiry = () => {
       const sessionKey = 'chiyadani:customerActiveSession';
+      const phoneKey = 'chiyadani:customerPhone';
       const existingSession = localStorage.getItem(sessionKey);
       
       if (existingSession) {
@@ -141,13 +142,16 @@ export default function TableOrder() {
           const isTableExpired = tableAge > 4 * 60 * 60 * 1000; // 4 hours
           
           if (isTableExpired) {
-            // Clear session and redirect to scan
+            // Save phone before clearing session
+            if (session.phone) {
+              localStorage.setItem(phoneKey, session.phone);
+            }
+            // Clear only table session
             localStorage.removeItem(sessionKey);
-            toast.info('Session expired. Please scan your table QR again.');
+            toast.info('Table session expired. Please scan your table QR again.');
             navigate('/scan', { replace: true });
           }
         } catch {
-          // Invalid session, clear and redirect
           localStorage.removeItem(sessionKey);
           navigate('/scan', { replace: true });
         }

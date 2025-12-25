@@ -20,34 +20,21 @@ export default function ScanTable() {
   const handleScanResult = (tableNum: number) => {
     setShowScanner(false);
     if (tableNum >= 1 && tableNum <= settings.tableCount) {
-      // Update session with new table
-      const sessionKey = 'chiyadani:customerActiveSession';
+      // Get saved phone (persists across table sessions)
       const phoneKey = 'chiyadani:customerPhone';
-      const savedPhone = localStorage.getItem(phoneKey);
+      const savedPhone = localStorage.getItem(phoneKey) || '';
       
-      let phone = savedPhone || '';
-      let isPhoneEntered = false;
-      
-      const existingSession = localStorage.getItem(sessionKey);
-      if (existingSession) {
-        try {
-          const session = JSON.parse(existingSession);
-          phone = session.phone || savedPhone || '';
-          isPhoneEntered = Boolean(session.isPhoneEntered);
-        } catch {
-          // Ignore parse errors
-        }
-      }
-      
+      // Create new table session with saved phone
+      const sessionKey = 'chiyadani:customerActiveSession';
       localStorage.setItem(sessionKey, JSON.stringify({
         table: tableNum,
-        phone,
-        isPhoneEntered,
+        phone: savedPhone,
+        isPhoneEntered: Boolean(savedPhone),
         tableTimestamp: Date.now(),
         timestamp: Date.now()
       }));
       
-      toast.success(`Switched to Table ${tableNum}`);
+      toast.success(`Table ${tableNum}`);
       navigate(`/table/${tableNum}`, { replace: true });
     } else {
       toast.error('Invalid table number');
@@ -59,35 +46,21 @@ export default function ScanTable() {
     if (tableFromQR) {
       const tableNum = parseInt(tableFromQR);
       if (tableNum && tableNum >= 1 && tableNum <= settings.tableCount) {
-        // Update session with new table (allows table switching via QR)
-        const sessionKey = 'chiyadani:customerActiveSession';
+        // Get saved phone (persists across table sessions)
         const phoneKey = 'chiyadani:customerPhone';
-        const savedPhone = localStorage.getItem(phoneKey);
+        const savedPhone = localStorage.getItem(phoneKey) || '';
         
-        const existingSession = localStorage.getItem(sessionKey);
-        let phone = savedPhone || '';
-        let isPhoneEntered = false;
-        
-        if (existingSession) {
-          try {
-            const session = JSON.parse(existingSession);
-            phone = session.phone || savedPhone || '';
-            isPhoneEntered = Boolean(session.isPhoneEntered);
-          } catch {
-            // Ignore parse errors
-          }
-        }
-        
-        // Create/update session with new table
+        // Create new table session with saved phone
+        const sessionKey = 'chiyadani:customerActiveSession';
         localStorage.setItem(sessionKey, JSON.stringify({
           table: tableNum,
-          phone,
-          isPhoneEntered,
+          phone: savedPhone,
+          isPhoneEntered: Boolean(savedPhone),
           tableTimestamp: Date.now(),
           timestamp: Date.now()
         }));
         
-        toast.success(`Switched to Table ${tableNum}`);
+        toast.success(`Table ${tableNum}`);
         navigate(`/table/${tableNum}`, { replace: true });
         return;
       }
