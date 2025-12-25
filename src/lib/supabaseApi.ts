@@ -436,21 +436,17 @@ export const staffApi = {
     return data ? mapStaffFromDb(data) : staff;
   },
   update: async (id: string, staff: any) => {
-    // First try to update
-    const { error } = await supabase
+    // Upsert so local default staff (id: '1'/'2') can be persisted even if DB is empty
+    const payload = { ...staff, id };
+
+    const { data, error } = await supabase
       .from('staff')
-      .update(mapStaffToDb(staff))
-      .eq('id', id);
-    if (error) throw error;
-    
-    // Fetch the updated record
-    const { data: fetchData, error: fetchError } = await supabase
-      .from('staff')
+      .upsert(mapStaffToDb(payload), { onConflict: 'id' })
       .select('*')
-      .eq('id', id)
       .maybeSingle();
-    if (fetchError) throw fetchError;
-    return fetchData ? mapStaffFromDb(fetchData) : staff;
+
+    if (error) throw error;
+    return data ? mapStaffFromDb(data) : payload;
   },
   delete: async (id: string) => {
     const { error } = await supabase.from('staff').delete().eq('id', id);
