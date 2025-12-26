@@ -375,6 +375,9 @@ export const useStore = create<StoreState>()((set, get) => ({
       items: bill.orders.flatMap(o => o.items),
     };
 
+    // Get order IDs that need to be marked as served
+    const orderIds = bill.orders.map(o => o.id);
+
     set((state) => ({
       bills: state.bills.map(b =>
         b.id === billId ? { ...b, status: 'paid' as const, paymentMethod, paidAt } : b
@@ -385,8 +388,14 @@ export const useStore = create<StoreState>()((set, get) => ({
       transactions: [...state.transactions, transaction],
     }));
 
+    // Sync bill payment to backend
     syncToBackend(() => billsApi.pay(billId, paymentMethod));
     syncToBackend(() => transactionsApi.create(transaction));
+    
+    // IMPORTANT: Also sync order status changes to database for realtime sync
+    orderIds.forEach(orderId => {
+      syncToBackend(() => ordersApi.updateStatus(orderId, 'served'));
+    });
 
     bill.customerPhones.forEach(phone => {
       get().addOrUpdateCustomer(phone, bill.total / bill.customerPhones.length);
