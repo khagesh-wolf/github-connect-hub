@@ -155,6 +155,12 @@ export default function Hub() {
         {/* Footer */}
         <div className="mt-12 text-center text-muted-foreground text-sm">
           <p>{settings.restaurantName} v2.0</p>
+          <p className="mt-1">
+            Developed by{' '}
+            <a href="https://khagesh.com.np" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Khagesh
+            </a>
+          </p>
         </div>
       </main>
     </div>
