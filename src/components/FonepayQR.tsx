@@ -13,7 +13,7 @@ interface FonepayQRProps {
 // Test/Demo Fonepay Merchant Configuration
 const FONEPAY_CONFIG = {
   merchantCode: 'DEMO-MERCHANT-001',
-  merchantName: 'Chiyadani Tea House',
+  merchantName: 'Sajilo Orders Restaurant',
   terminalId: 'TERM-001',
   baseUrl: 'https://fonepay.com/pay', // Demo URL
 };

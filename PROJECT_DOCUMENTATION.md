@@ -1,4 +1,4 @@
-# Chiyadani POS - Complete Project Documentation
+# Sajilo Orders POS - Complete Project Documentation
 
 **Version:** 1.0  
 **Last Updated:** 2025-12-26  
@@ -21,7 +21,7 @@
 
 ## Executive Summary
 
-Chiyadani POS is a **modern, cloud-based restaurant management system** designed specifically for cafes and restaurants in Nepal. It eliminates paper-based ordering, reduces staff workload, and provides real-time analytics - all while running on completely **free-tier cloud services**.
+Sajilo Orders POS is a **modern, cloud-based restaurant management system** designed specifically for cafes and restaurants in Nepal. It eliminates paper-based ordering, reduces staff workload, and provides real-time analytics - all while running on completely **free-tier cloud services**.
 
 ### Key Value Propositions
 
@@ -283,8 +283,8 @@ All views sync instantly using Supabase Realtime:
 
 ### Before vs After Comparison
 
-| Task | Manual System | Chiyadani POS | Time Saved |
-|------|---------------|---------------|------------|
+| Task | Manual System | Sajilo Orders POS | Time Saved |
+|------|---------------|-------------------|------------|
 | Taking order | 3-5 min | 30 sec | 80-90% |
 | Kitchen communication | Walk to kitchen | Instant | 100% |
 | Bill calculation | 2-3 min | Instant | 100% |
@@ -299,7 +299,7 @@ All views sync instantly using Supabase Realtime:
 |----------|-------------------|-------------|
 | Traditional POS System | Rs. 50,000+ setup + Rs. 5,000/month | Rs. 110,000+ |
 | Tablet-based POS | Rs. 3,000-5,000/month | Rs. 36,000-60,000 |
-| **Chiyadani POS** | **Rs. 0** | **Rs. 0** |
+| **Sajilo Orders POS** | **Rs. 0** | **Rs. 0** |
 
 ### Automation Features
 
@@ -328,7 +328,7 @@ All views sync instantly using Supabase Realtime:
 2. Sign up/Login
 3. Click **"New Project"**
 4. Fill in:
-   - **Name**: `chiyadani-pos`
+   - **Name**: `sajilo-orders-pos`
    - **Database Password**: (save this!)
    - **Region**: Mumbai (closest to Nepal)
 5. Click **"Create new project"**
@@ -357,7 +357,7 @@ All views sync instantly using Supabase Realtime:
 2. Sign up/Login
 3. In sidebar, click **"R2"**
 4. Click **"Create bucket"**
-5. Name: `chiyadani-images`
+5. Name: `sajilo-orders-images`
 6. Click **"Create bucket"**
 
 #### 2.2 Enable Public Access
@@ -371,9 +371,9 @@ All views sync instantly using Supabase Realtime:
 
 1. Go to **R2** → **Manage R2 API Tokens**
 2. Click **"Create API token"**
-3. Name: `chiyadani-worker`
+3. Name: `sajilo-orders-worker`
 4. Permissions: **Object Read & Write**
-5. Specify bucket: `chiyadani-images`
+5. Specify bucket: `sajilo-orders-images`
 6. Click **"Create API Token"**
 7. Save the **Access Key ID** and **Secret Access Key**
 
@@ -383,7 +383,7 @@ All views sync instantly using Supabase Realtime:
 
 1. In Cloudflare, go to **Workers & Pages**
 2. Click **"Create application"** → **"Create Worker"**
-3. Name: `chiyadani-api`
+3. Name: `sajilo-orders-api`
 4. Click **"Deploy"**
 5. Click **"Edit code"**
 6. Delete all code and paste contents of `workers/image-upload.js`
@@ -392,9 +392,9 @@ All views sync instantly using Supabase Realtime:
    - `R2_PUBLIC_URL`: Your public bucket URL
 9. Add **R2 Bucket Bindings**:
    - Variable name: `R2_BUCKET`
-   - R2 bucket: `chiyadani-images`
+   - R2 bucket: `sajilo-orders-images`
 10. Click **"Save and Deploy"**
-11. Note the worker URL: `https://chiyadani-api.YOUR-SUBDOMAIN.workers.dev`
+11. Note the worker URL: `https://sajilo-orders-api.YOUR-SUBDOMAIN.workers.dev`
 
 #### Option B: Using Wrangler CLI
 
@@ -424,7 +424,7 @@ wrangler deploy
 git init
 git add .
 git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/chiyadani-pos.git
+git remote add origin https://github.com/YOUR_USERNAME/sajilo-orders-pos.git
 git push -u origin main
 ```
 
@@ -453,7 +453,7 @@ In Cloudflare Pages → **Settings** → **Environment Variables**, add:
 
 1. Click **"Save and Deploy"**
 2. Wait 2-3 minutes
-3. Your app is live at: `https://chiyadani-pos.pages.dev`
+3. Your app is live at: `https://sajilo-orders-pos.pages.dev`
 
 ### Step 5: Custom Domain (Optional)
 
@@ -747,4 +747,4 @@ Contact the development team for:
 
 **Document End**
 
-*Chiyadani POS - Making restaurant management simple, efficient, and free.*
+*Sajilo Orders POS - Making restaurant management simple, efficient, and free.*

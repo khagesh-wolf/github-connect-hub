@@ -23,7 +23,7 @@ export function Navigation() {
               <Coffee className="w-5 h-5 text-primary" />
             </div>
             <span className="font-serif text-xl font-semibold gradient-text">
-              Chiyadani
+              Sajilo Orders
             </span>
           </Link>
 

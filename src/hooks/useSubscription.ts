@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { checkSubscription, SubscriptionStatus } from '@/lib/centralSupabase';
 
 // Cache key and duration
-const CACHE_KEY = 'chiyadani:subscription';
+const CACHE_KEY = 'sajilo:subscription';
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
 const CHECK_INTERVAL = 60 * 60 * 1000; // Re-check every hour
 

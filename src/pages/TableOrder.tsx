@@ -197,8 +197,8 @@ export default function TableOrder() {
   useEffect(() => {
     
     const checkSessionExpiry = () => {
-      const sessionKey = 'chiyadani:customerActiveSession';
-      const phoneKey = 'chiyadani:customerPhone';
+      const sessionKey = 'sajilo:customerActiveSession';
+      const phoneKey = 'sajilo:customerPhone';
       const existingSession = localStorage.getItem(sessionKey);
       
       if (existingSession) {
@@ -242,8 +242,8 @@ export default function TableOrder() {
       return;
     }
 
-    const sessionKey = 'chiyadani:customerActiveSession';
-    const phoneKey = 'chiyadani:customerPhone';
+    const sessionKey = 'sajilo:customerActiveSession';
+    const phoneKey = 'sajilo:customerPhone';
     const existingSession = localStorage.getItem(sessionKey);
     const savedPhone = localStorage.getItem(phoneKey);
     const closedSessions = getClosedSessions();
@@ -347,7 +347,7 @@ export default function TableOrder() {
   useEffect(() => {
     if (!isPhoneEntered || !phone || !table) return;
     
-    const sessionKey = 'chiyadani:customerActiveSession';
+    const sessionKey = 'sajilo:customerActiveSession';
     const existingSession = localStorage.getItem(sessionKey);
     
     if (existingSession) {
@@ -544,8 +544,8 @@ export default function TableOrder() {
 
     if (lockedTable) {
       // Store unified session with table lock
-      const sessionKey = 'chiyadani:customerActiveSession';
-      const phoneKey = 'chiyadani:customerPhone';
+      const sessionKey = 'sajilo:customerActiveSession';
+      const phoneKey = 'sajilo:customerPhone';
       
       // Save phone permanently (survives table expiry)
       localStorage.setItem(phoneKey, phone);
@@ -677,7 +677,7 @@ export default function TableOrder() {
           </p>
           <button
             onClick={() => {
-              localStorage.removeItem('chiyadani:customerActiveSession');
+              localStorage.removeItem('sajilo:customerActiveSession');
               navigate('/', { replace: true });
             }}
             className="w-full bg-black text-white p-4 rounded-lg text-lg font-semibold"
@@ -759,7 +759,7 @@ export default function TableOrder() {
           {/* Cancel Link */}
           <button
             onClick={() => {
-              localStorage.removeItem('chiyadani:customerActiveSession');
+              localStorage.removeItem('sajilo:customerActiveSession');
               navigate('/', { replace: true });
             }}
             className="w-full mt-6 text-muted-foreground text-sm hover:text-foreground transition-colors underline underline-offset-2"
@@ -884,8 +884,8 @@ export default function TableOrder() {
                   return;
                 }
                 // Clear ALL session data including phone
-                localStorage.removeItem('chiyadani:customerActiveSession');
-                localStorage.removeItem('chiyadani:customerPhone');
+                localStorage.removeItem('sajilo:customerActiveSession');
+                localStorage.removeItem('sajilo:customerPhone');
                 setPhone('');
                 setIsPhoneEntered(false);
                 setCart([]);

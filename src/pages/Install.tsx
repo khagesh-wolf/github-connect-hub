@@ -35,7 +35,7 @@ function getPlatform(): 'ios' | 'android' | 'desktop' {
 // Check for active session
 function getActiveSession(): { table: number; phone?: string } | null {
   try {
-    const sessionKey = 'chiyadani:customerActiveSession';
+    const sessionKey = 'sajilo:customerActiveSession';
     const existingSession = localStorage.getItem(sessionKey);
     if (existingSession) {
       const session = JSON.parse(existingSession);
@@ -93,12 +93,12 @@ export default function Install() {
           
           // Check for active session and redirect
           const activeSession = getActiveSession();
-          const pendingTable = sessionStorage.getItem('chiyadani:pendingTable');
+          const pendingTable = sessionStorage.getItem('sajilo:pendingTable');
           
           if (activeSession) {
             navigate(`/table/${activeSession.table}`, { replace: true });
           } else if (pendingTable) {
-            sessionStorage.removeItem('chiyadani:pendingTable');
+            sessionStorage.removeItem('sajilo:pendingTable');
             navigate(`/scan?table=${pendingTable}`, { replace: true });
           }
         }, 1500);
@@ -130,12 +130,12 @@ export default function Install() {
         setIsInstalling(false);
         // Check for active session and redirect
         const activeSession = getActiveSession();
-        const pendingTable = sessionStorage.getItem('chiyadani:pendingTable');
+        const pendingTable = sessionStorage.getItem('sajilo:pendingTable');
         
         if (activeSession) {
           navigate(`/table/${activeSession.table}`, { replace: true });
         } else if (pendingTable) {
-          sessionStorage.removeItem('chiyadani:pendingTable');
+          sessionStorage.removeItem('sajilo:pendingTable');
           navigate(`/scan?table=${pendingTable}`, { replace: true });
         }
       }, 2000);
@@ -148,12 +148,12 @@ export default function Install() {
   // Handle navigation after install
   const handleContinue = () => {
     const activeSession = getActiveSession();
-    const pendingTable = sessionStorage.getItem('chiyadani:pendingTable');
+    const pendingTable = sessionStorage.getItem('sajilo:pendingTable');
     
     if (activeSession) {
       navigate(`/table/${activeSession.table}`, { replace: true });
     } else if (pendingTable) {
-      sessionStorage.removeItem('chiyadani:pendingTable');
+      sessionStorage.removeItem('sajilo:pendingTable');
       navigate(`/?table=${pendingTable}`, { replace: true });
     } else {
       navigate('/scan', { replace: true });

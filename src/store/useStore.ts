@@ -35,7 +35,7 @@ const syncToBackend = async (fn: () => Promise<unknown>, retries = 2) => {
 };
 
 const defaultSettings: Settings = {
-  restaurantName: 'Chiyadani',
+  restaurantName: 'Sajilo Orders',
   tableCount: 10,
   wifiSSID: '',
   wifiPassword: '',
@@ -159,16 +159,16 @@ export const useStore = create<StoreState>()((set, get) => ({
   setDataLoaded: (loaded) => set({ isDataLoaded: loaded }),
 
   // Auth - persisted separately in localStorage
-  isAuthenticated: JSON.parse(localStorage.getItem('chiyadani_auth') || 'false'),
-  currentUser: JSON.parse(localStorage.getItem('chiyadani_user') || 'null'),
+  isAuthenticated: JSON.parse(localStorage.getItem('sajilo_auth') || 'false'),
+  currentUser: JSON.parse(localStorage.getItem('sajilo_user') || 'null'),
 
   login: (username, password) => {
     const user = get().staff.find(
       s => s.username === username && s.password === password
     );
     if (user) {
-      localStorage.setItem('chiyadani_auth', 'true');
-      localStorage.setItem('chiyadani_user', JSON.stringify(user));
+      localStorage.setItem('sajilo_auth', 'true');
+      localStorage.setItem('sajilo_user', JSON.stringify(user));
       set({ isAuthenticated: true, currentUser: user });
       return true;
     }
@@ -176,8 +176,8 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
 
   logout: () => {
-    localStorage.removeItem('chiyadani_auth');
-    localStorage.removeItem('chiyadani_user');
+    localStorage.removeItem('sajilo_auth');
+    localStorage.removeItem('sajilo_user');
     set({ isAuthenticated: false, currentUser: null });
   },
 
