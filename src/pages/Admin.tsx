@@ -1900,7 +1900,10 @@ export default function Admin() {
         {/* Copyright Footer */}
         <footer className="mt-auto pt-8 pb-4 text-center border-t border-border">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} {settings.restaurantName}. All rights reserved.
+            © {new Date().getFullYear()} {settings.restaurantName}. Developed by{' '}
+            <a href="https://khagesh.com.np" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Khagesh
+            </a>
           </p>
         </footer>
       </main>

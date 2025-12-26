@@ -1466,7 +1466,10 @@ export default function TableOrder() {
       {/* Copyright Footer */}
       <footer className="py-4 text-center border-t border-[#eee] bg-white mt-auto">
         <p className="text-xs text-[#999]">
-          © {new Date().getFullYear()} {settings.restaurantName}. All rights reserved.
+          © {new Date().getFullYear()} {settings.restaurantName}. Developed by{' '}
+          <a href="https://khagesh.com.np" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            Khagesh
+          </a>
         </p>
       </footer>
 
