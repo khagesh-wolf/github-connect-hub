@@ -10,16 +10,16 @@
 name = "chiyadani-api"
 main = "image-upload.js"
 compatibility_date = "2024-01-01"
+account_id = "a0ddd36fdd76bdcb23b35158b13cd12d"
 
 # R2 bucket binding
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "chiyadani-images"
 
-# Environment variables - UPDATE THESE WITH YOUR VALUES
-# Get your public bucket URL from R2 bucket settings -> Public access
+# Environment variables
 [vars]
-R2_PUBLIC_URL = "https://YOUR_PUBLIC_BUCKET_URL_HERE"
+R2_PUBLIC_URL = "https://pub-9702a470ba4640419140bd808ef0b16a.r2.dev"
 
 # Optional: Custom domain routing
 # [routes]
