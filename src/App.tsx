@@ -14,6 +14,7 @@ import Counter from "./pages/Counter";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import Kitchen from "./pages/Kitchen";
+import Waiter from "./pages/Waiter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/counter" element={<Counter />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/kitchen" element={<Kitchen />} />
+              <Route path="/waiter" element={<Waiter />} />
               <Route path="/auth" element={<Auth />} />
               
               <Route path="*" element={<NotFound />} />

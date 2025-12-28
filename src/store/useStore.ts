@@ -7,9 +7,11 @@ import {
   MenuItem,
   Order,
   OrderItem,
+  OrderItemStatus,
   OrderStatus,
   Settings,
   Staff,
+  StaffRole,
   Transaction,
   WaiterCall,
 } from '@/types';
@@ -41,6 +43,8 @@ const defaultSettings: Settings = {
   wifiPassword: '',
   baseUrl: typeof window !== 'undefined' ? window.location.origin : '',
   counterAsAdmin: false,
+  kotPrintingEnabled: false,
+  kdsEnabled: false,
 };
 
 const defaultStaff: Staff[] = [
@@ -74,6 +78,7 @@ interface StoreState extends AuthState {
 
   // Auth
   login: (username: string, password: string) => boolean;
+  loginWithPin: (pin: string) => boolean; // PIN-based login for waiters/kitchen
   logout: () => void;
 
   // Categories
@@ -97,11 +102,16 @@ interface StoreState extends AuthState {
   orders: Order[];
   setOrders: (orders: Order[]) => void;
   addOrder: (tableNumber: number, customerPhone: string, items: OrderItem[], notes?: string) => Order;
+  addWaiterOrder: (tableNumber: number, items: OrderItem[], notes?: string) => Order; // Auto-accepted waiter order
   updateOrderStatus: (id: string, status: OrderStatus) => void;
+  updateOrderItemStatus: (orderId: string, itemId: string, status: OrderItemStatus, completedQty?: number) => void;
+  setOrderPriority: (orderId: string, priority: 'normal' | 'rush') => void;
   getOrdersByTable: (tableNumber: number) => Order[];
   getOrdersByPhone: (phone: string) => Order[];
+  getOrdersByWaiter: (staffId: string) => Order[];
   getPendingOrders: () => Order[];
   getActiveOrders: () => Order[];
+  getKitchenOrders: () => Order[]; // Orders for kitchen display
 
   // Bills
   bills: Bill[];
@@ -166,6 +176,17 @@ export const useStore = create<StoreState>()((set, get) => ({
     const user = get().staff.find(
       s => s.username === username && s.password === password
     );
+    if (user) {
+      localStorage.setItem('sajilo_auth', 'true');
+      localStorage.setItem('sajilo_user', JSON.stringify(user));
+      set({ isAuthenticated: true, currentUser: user });
+      return true;
+    }
+    return false;
+  },
+
+  loginWithPin: (pin) => {
+    const user = get().staff.find(s => s.pin === pin);
     if (user) {
       localStorage.setItem('sajilo_auth', 'true');
       localStorage.setItem('sajilo_user', JSON.stringify(user));
@@ -311,6 +332,39 @@ export const useStore = create<StoreState>()((set, get) => ({
     return newOrder;
   },
 
+  addWaiterOrder: (tableNumber, items, notes) => {
+    const now = getNepalTimestamp();
+    const currentUser = get().currentUser;
+    const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    // Ensure all order items have required fields with pending status
+    const orderItems = items.map(item => ({
+      id: item.id || generateId(),
+      menuItemId: item.menuItemId,
+      name: item.name,
+      qty: item.qty,
+      price: item.price,
+      status: 'pending' as OrderItemStatus,
+      completedQty: 0
+    }));
+    const newOrder: Order = {
+      id: generateId(),
+      tableNumber,
+      customerPhone: `waiter-${currentUser?.name || 'staff'}`,
+      items: orderItems,
+      status: 'accepted', // Auto-accepted for waiter orders
+      createdAt: now,
+      updatedAt: now,
+      total,
+      notes: notes || '',
+      createdBy: currentUser?.id,
+      isWaiterOrder: true,
+      priority: 'normal'
+    };
+    set((state) => ({ orders: [...state.orders, newOrder] }));
+    syncToBackend(() => ordersApi.create(newOrder));
+    return newOrder;
+  },
+
   updateOrderStatus: (id, status) => set((state) => {
     syncToBackend(() => ordersApi.updateStatus(id, status));
     return {
@@ -320,17 +374,57 @@ export const useStore = create<StoreState>()((set, get) => ({
     };
   }),
 
+  updateOrderItemStatus: (orderId, itemId, status, completedQty) => set((state) => {
+    const order = state.orders.find(o => o.id === orderId);
+    if (!order) return {};
+    
+    const updatedItems = order.items.map(item => 
+      item.id === itemId 
+        ? { ...item, status, completedQty: completedQty !== undefined ? completedQty : item.completedQty }
+        : item
+    );
+    
+    // Check if all items are ready
+    const allReady = updatedItems.every(item => item.status === 'ready' || (item.completedQty || 0) >= item.qty);
+    
+    return {
+      orders: state.orders.map(o =>
+        o.id === orderId 
+          ? { 
+              ...o, 
+              items: updatedItems, 
+              updatedAt: getNepalTimestamp(),
+              // Auto-update order status if all items ready
+              status: allReady ? 'ready' : o.status
+            } 
+          : o
+      )
+    };
+  }),
+
+  setOrderPriority: (orderId, priority) => set((state) => ({
+    orders: state.orders.map(o =>
+      o.id === orderId ? { ...o, priority, updatedAt: getNepalTimestamp() } : o
+    )
+  })),
+
   getOrdersByTable: (tableNumber) =>
     get().orders.filter(o => o.tableNumber === tableNumber && o.status !== 'cancelled'),
 
   getOrdersByPhone: (phone) =>
     get().orders.filter(o => o.customerPhone === phone),
 
+  getOrdersByWaiter: (staffId) =>
+    get().orders.filter(o => o.createdBy === staffId && o.isWaiterOrder),
+
   getPendingOrders: () =>
     get().orders.filter(o => o.status === 'pending'),
 
   getActiveOrders: () =>
     get().orders.filter(o => ['pending', 'accepted', 'preparing', 'ready'].includes(o.status)),
+
+  getKitchenOrders: () =>
+    get().orders.filter(o => ['accepted', 'preparing'].includes(o.status)),
 
   // Bills - starts empty, loaded from backend
   bills: [],

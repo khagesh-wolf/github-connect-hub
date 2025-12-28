@@ -21,7 +21,11 @@ export interface OrderItem {
   name: string;
   qty: number;
   price: number;
+  status?: OrderItemStatus; // For kitchen item-level tracking
+  completedQty?: number; // How many of this item are completed
 }
+
+export type OrderItemStatus = 'pending' | 'preparing' | 'ready';
 
 export interface Order {
   id: string;
@@ -33,6 +37,9 @@ export interface Order {
   updatedAt: string;
   total: number;
   notes?: string;
+  createdBy?: string; // Staff ID who created the order (for waiter orders)
+  isWaiterOrder?: boolean; // True if created by waiter (auto-accepted)
+  priority?: 'normal' | 'rush'; // Rush orders get highlighted
 }
 
 export type OrderStatus = 'pending' | 'accepted' | 'preparing' | 'ready' | 'served' | 'cancelled';
@@ -76,11 +83,13 @@ export interface Staff {
   id: string;
   username: string;
   password: string;
-  pin?: string; // 4-6 digit PIN for quick actions like approving orders
-  role: 'admin' | 'counter';
+  pin?: string; // 4-6 digit PIN for quick actions
+  role: StaffRole;
   name: string;
   createdAt: string;
 }
+
+export type StaffRole = 'admin' | 'counter' | 'waiter' | 'kitchen';
 
 export interface Settings {
   restaurantName: string;
@@ -98,6 +107,8 @@ export interface Settings {
   counterAsAdmin?: boolean;
   // Kitchen settings
   kitchenHandles?: number; // Number of parallel orders kitchen can handle (default: 3)
+  kotPrintingEnabled?: boolean; // Kitchen Order Ticket printing
+  kdsEnabled?: boolean; // Kitchen Display System - if On, both Kitchen and Counter can accept orders
   // Point system settings
   pointSystemEnabled?: boolean;
   pointsPerRupee?: number;       // How many points earned per rupee spent (e.g., 1 point per 10 rupees = 0.1)

@@ -12,7 +12,7 @@ import {
   UtensilsCrossed, Users, QrCode, History, TrendingUp, ShoppingBag, DollarSign,
   Download, Search, Eye, UserCog, BarChart3, Calendar, Image as ImageIcon, ToggleLeft, ToggleRight,
   Check, X, Menu as MenuIcon, MonitorDot, GripVertical, Upload, Loader2, Shield, Pencil,
-  Sun, Moon
+  Sun, Moon, ChefHat
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { Textarea } from '@/components/ui/textarea';
@@ -1761,25 +1761,60 @@ export default function Admin() {
 
               {/* Right Column */}
               <div className="space-y-4">
-                {/* Kitchen Settings */}
+                {/* Kitchen Display System Settings */}
                 <div className="bg-card rounded-xl border border-border p-5">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-warning" />
-                    Kitchen Settings
+                    <ChefHat className="w-5 h-5 text-warning" />
+                    Kitchen Display System
                   </h3>
-                  <div>
-                    <label className="text-sm font-medium">Kitchen Handles (Parallel Orders)</label>
-                    <Input 
-                      type="number" 
-                      min="1"
-                      max="10"
-                      value={settings.kitchenHandles || 3} 
-                      onChange={e => updateSettings({ kitchenHandles: parseInt(e.target.value) || 3 })} 
-                      placeholder="3"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Number of orders the kitchen can prepare simultaneously.
-                    </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-medium">Enable KDS</label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Kitchen can view and manage orders on their display.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.kdsEnabled || false}
+                        onCheckedChange={(checked) => {
+                          updateSettings({ kdsEnabled: checked });
+                          toast.success(checked ? 'Kitchen Display enabled' : 'Kitchen Display disabled');
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-4 border-t border-border">
+                      <div>
+                        <label className="text-sm font-medium">KOT Printing</label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Auto-print Kitchen Order Tickets for waiter orders.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.kotPrintingEnabled || false}
+                        onCheckedChange={(checked) => {
+                          updateSettings({ kotPrintingEnabled: checked });
+                          toast.success(checked ? 'KOT printing enabled' : 'KOT printing disabled');
+                        }}
+                      />
+                    </div>
+
+                    <div className="pt-4 border-t border-border">
+                      <label className="text-sm font-medium">Kitchen Handles (Parallel Orders)</label>
+                      <Input 
+                        type="number" 
+                        min="1"
+                        max="10"
+                        value={settings.kitchenHandles || 3} 
+                        onChange={e => updateSettings({ kitchenHandles: parseInt(e.target.value) || 3 })} 
+                        placeholder="3"
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Number of orders the kitchen can prepare simultaneously.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
