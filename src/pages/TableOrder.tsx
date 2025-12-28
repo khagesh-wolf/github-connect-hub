@@ -28,8 +28,11 @@ import {
   Trash2,
   Flame,
   AlertCircle,
-  ShieldAlert
+  ShieldAlert,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 import { useHapticFeedback, playOrderSuccessSound } from '@/hooks/useHapticFeedback';
 import { Confetti } from '@/components/Confetti';
 import { toast } from 'sonner';
@@ -127,6 +130,9 @@ export default function TableOrder() {
 
   // Rush hour detection
   const rushHourInfo = useRushHour();
+
+  // Theme hook
+  const { theme, setTheme } = useTheme();
 
   // Get customer's orders for this table - subscribe to orders from store directly for real-time updates
   const storeOrders = useStore(state => state.orders);
@@ -869,6 +875,16 @@ export default function TableOrder() {
             </div>
           </div>
           <div className="flex flex-col gap-2.5">
+            <button 
+              onClick={() => {
+                const newTheme = theme === 'dark' ? 'light' : 'dark';
+                setTheme(newTheme);
+              }}
+              className="w-full bg-secondary border border-border px-3 py-2 rounded-full text-sm font-semibold text-foreground flex items-center gap-2 justify-start"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </button>
             <button 
               onClick={() => {
                 // Check if there's unpaid bill

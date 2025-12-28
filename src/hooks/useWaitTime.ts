@@ -74,7 +74,7 @@ export function useWaitTime() {
   };
 
   const formatWaitTime = (minutes: number) => {
-    if (minutes <= 0) return "Ready now";
+    if (minutes <= 0) return "< 5 min";
     if (minutes < 5) return "< 5 min";
     if (minutes < 10) return "5-10 min";
     if (minutes < 15) return "10-15 min";
