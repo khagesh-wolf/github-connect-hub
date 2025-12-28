@@ -602,19 +602,19 @@ export default function Counter() {
                 key={call.id} 
                 className="rounded-xl p-3 relative overflow-hidden bg-warning/10 border border-warning/20"
               >
-                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                <div className="absolute top-0 left-0 w-1 h-full bg-warning" />
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-bold text-gray-800 flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-amber-600" />
+                  <span className="font-bold text-foreground flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-warning" />
                     Table {call.tableNumber}
                   </span>
-                  <span className="text-xs text-gray-500">{formatNepalTime(call.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">{formatNepalTime(call.createdAt)}</span>
                 </div>
-                <div className="text-xs text-gray-600 mb-2">Customer: {call.customerPhone}</div>
+                <div className="text-xs text-muted-foreground mb-2">Customer: {call.customerPhone}</div>
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
-                    className="flex-1 h-8 text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
+                    className="flex-1 h-8 text-xs bg-success hover:bg-success/90 text-success-foreground"
                     onClick={() => {
                       acknowledgeWaiterCall(call.id);
                       toast.success(`Going to Table ${call.tableNumber}`);
@@ -625,7 +625,7 @@ export default function Counter() {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="h-8 border-gray-300 text-gray-600"
+                    className="h-8 border-border text-muted-foreground hover:bg-muted"
                     onClick={() => {
                       dismissWaiterCall(call.id);
                       toast.info('Dismissed');
@@ -641,35 +641,32 @@ export default function Counter() {
             {pendingOrders.slice(0, 2).map(group => (
               <div 
                 key={group.key} 
-                className="rounded-xl p-3 relative overflow-hidden bg-white"
-                style={{
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
+                className="rounded-xl p-3 relative overflow-hidden bg-card border border-border shadow-md"
               >
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-400 to-orange-500" />
-                <div className="flex justify-between font-bold mb-1 text-gray-800">
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-warning to-destructive" />
+                <div className="flex justify-between font-bold mb-1 text-foreground">
                   <span>Table {group.tableNumber}</span>
-                  <span className="text-xs font-normal text-gray-500">{formatNepalTime(group.createdAt)}</span>
+                  <span className="text-xs font-normal text-muted-foreground">{formatNepalTime(group.createdAt)}</span>
                 </div>
-                <div className="text-xs text-gray-500 mb-1">
+                <div className="text-xs text-muted-foreground mb-1">
                   Customer: {group.phone}
-                  {group.orders.length > 1 && <span className="ml-1 text-amber-600">({group.orders.length} orders)</span>}
+                  {group.orders.length > 1 && <span className="ml-1 text-warning">({group.orders.length} orders)</span>}
                 </div>
-                <div className="text-xs text-gray-600 mb-2">
+                <div className="text-xs text-muted-foreground mb-2">
                   {group.allItems.slice(0, 3).map(i => `${i.qty}x ${i.name}`).join(', ')}
                   {group.allItems.length > 3 && ` +${group.allItems.length - 3} more`}
                 </div>
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
-                    className="flex-1 h-8 text-xs bg-gradient-to-r from-emerald-500 to-emerald-600 text-white"
+                    className="flex-1 h-8 text-xs bg-success hover:bg-success/90 text-success-foreground"
                     onClick={() => handleAcceptGroup(group)}
                   >
                     <Check className="w-3 h-3 mr-1" /> Accept{group.orders.length > 1 ? ' All' : ''}
                   </Button>
                   <Button 
                     size="sm" 
-                    className="h-8 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white"
+                    className="h-8 text-xs bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                     onClick={() => handleRejectGroup(group)}
                   >
                     <X className="w-3 h-3" />
@@ -689,25 +686,21 @@ export default function Counter() {
             {getPendingWaiterCalls().slice(2).map(call => (
               <div 
                 key={call.id} 
-                className="rounded-xl p-3 relative overflow-hidden"
-                style={{
-                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                  boxShadow: '0 4px 12px rgba(251,191,36,0.3)'
-                }}
+                className="rounded-xl p-3 relative overflow-hidden bg-warning/10 border border-warning/20"
               >
-                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                <div className="absolute top-0 left-0 w-1 h-full bg-warning" />
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-bold text-gray-800 flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-amber-600" />
+                  <span className="font-bold text-foreground flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-warning" />
                     Table {call.tableNumber}
                   </span>
-                  <span className="text-xs text-gray-500">{formatNepalTime(call.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">{formatNepalTime(call.createdAt)}</span>
                 </div>
-                <div className="text-xs text-gray-600 mb-2">Customer: {call.customerPhone}</div>
+                <div className="text-xs text-muted-foreground mb-2">Customer: {call.customerPhone}</div>
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
-                    className="flex-1 h-8 text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
+                    className="flex-1 h-8 text-xs bg-success hover:bg-success/90 text-success-foreground"
                     onClick={() => {
                       acknowledgeWaiterCall(call.id);
                       toast.success(`Going to Table ${call.tableNumber}`);
@@ -718,7 +711,7 @@ export default function Counter() {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="h-8 border-gray-300 text-gray-600"
+                    className="h-8 border-border text-muted-foreground hover:bg-muted"
                     onClick={() => {
                       dismissWaiterCall(call.id);
                       toast.info('Dismissed');
@@ -733,35 +726,32 @@ export default function Counter() {
             {pendingOrders.slice(2).map(group => (
               <div 
                 key={group.key} 
-                className="rounded-xl p-3 relative overflow-hidden bg-white"
-                style={{
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
+                className="rounded-xl p-3 relative overflow-hidden bg-card border border-border shadow-md"
               >
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-400 to-orange-500" />
-                <div className="flex justify-between font-bold mb-1 text-gray-800">
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-warning to-destructive" />
+                <div className="flex justify-between font-bold mb-1 text-foreground">
                   <span>Table {group.tableNumber}</span>
-                  <span className="text-xs font-normal text-gray-500">{formatNepalTime(group.createdAt)}</span>
+                  <span className="text-xs font-normal text-muted-foreground">{formatNepalTime(group.createdAt)}</span>
                 </div>
-                <div className="text-xs text-gray-500 mb-1">
+                <div className="text-xs text-muted-foreground mb-1">
                   Customer: {group.phone}
-                  {group.orders.length > 1 && <span className="ml-1 text-amber-600">({group.orders.length} orders)</span>}
+                  {group.orders.length > 1 && <span className="ml-1 text-warning">({group.orders.length} orders)</span>}
                 </div>
-                <div className="text-xs text-gray-600 mb-2">
+                <div className="text-xs text-muted-foreground mb-2">
                   {group.allItems.slice(0, 3).map(i => `${i.qty}x ${i.name}`).join(', ')}
                   {group.allItems.length > 3 && ` +${group.allItems.length - 3} more`}
                 </div>
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
-                    className="flex-1 h-8 text-xs bg-gradient-to-r from-emerald-500 to-emerald-600 text-white"
+                    className="flex-1 h-8 text-xs bg-success hover:bg-success/90 text-success-foreground"
                     onClick={() => handleAcceptGroup(group)}
                   >
                     <Check className="w-3 h-3 mr-1" /> Accept{group.orders.length > 1 ? ' All' : ''}
                   </Button>
                   <Button 
                     size="sm" 
-                    className="h-8 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white"
+                    className="h-8 text-xs bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                     onClick={() => handleRejectGroup(group)}
                   >
                     <X className="w-3 h-3" />
@@ -816,25 +806,20 @@ export default function Counter() {
               {getPendingWaiterCalls().map(call => (
                 <div 
                   key={call.id} 
-                  className="rounded-xl p-4 animate-pulse relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                    boxShadow: '0 8px 20px rgba(251,191,36,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    transform: 'translateZ(0)'
-                  }}
+                  className="rounded-xl p-4 animate-pulse relative overflow-hidden bg-warning/10 border border-warning/30 shadow-lg"
                 >
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500 rounded-l-xl" />
+                  <div className="absolute top-0 left-0 w-1.5 h-full bg-warning rounded-l-xl" />
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-lg text-gray-800">Table {call.tableNumber}</span>
-                    <span className="text-xs text-gray-500">{formatNepalTime(call.createdAt)}</span>
+                    <span className="font-bold text-lg text-foreground">Table {call.tableNumber}</span>
+                    <span className="text-xs text-muted-foreground">{formatNepalTime(call.createdAt)}</span>
                   </div>
-                  <div className="text-sm text-gray-600 mb-3">
+                  <div className="text-sm text-muted-foreground mb-3">
                     Customer: {call.customerPhone}
                   </div>
                   <div className="flex gap-2">
                     <Button 
                       size="sm" 
-                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30"
+                      className="flex-1 bg-success hover:bg-success/90 text-success-foreground shadow-lg"
                       onClick={() => {
                         acknowledgeWaiterCall(call.id);
                         toast.success(`Going to Table ${call.tableNumber}`);
@@ -845,7 +830,7 @@ export default function Counter() {
                     <Button 
                       size="sm" 
                       variant="outline"
-                      className="border-gray-300 text-gray-600 hover:bg-gray-100"
+                      className="border-border text-muted-foreground hover:bg-muted"
                       onClick={() => {
                         dismissWaiterCall(call.id);
                         toast.info('Call dismissed');
@@ -871,43 +856,38 @@ export default function Counter() {
             pendingOrders.map(group => (
               <div 
                 key={group.key} 
-                className="rounded-xl p-4 animate-slide-up relative overflow-hidden group transition-all duration-300 hover:scale-[1.02]"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
-                  boxShadow: '0 8px 25px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,1)',
-                  transform: 'translateZ(0)'
-                }}
+                className="rounded-xl p-4 animate-slide-up relative overflow-hidden group transition-all duration-300 hover:scale-[1.02] bg-card border border-border shadow-lg"
               >
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-amber-400 to-orange-500 rounded-l-xl" />
-                <div className="flex justify-between font-bold mb-1 border-b border-dashed border-gray-200 pb-2 text-gray-800">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-warning to-destructive rounded-l-xl" />
+                <div className="flex justify-between font-bold mb-1 border-b border-dashed border-border pb-2 text-foreground">
                   <span className="text-lg">Table {group.tableNumber}</span>
-                  <span className="text-sm font-normal text-gray-500">{formatNepalTime(group.createdAt)}</span>
+                  <span className="text-sm font-normal text-muted-foreground">{formatNepalTime(group.createdAt)}</span>
                 </div>
-                <div className="text-sm text-gray-500 italic mb-2">
+                <div className="text-sm text-muted-foreground italic mb-2">
                   Customer: {group.phone}
-                  {group.orders.length > 1 && <span className="ml-2 text-amber-600 font-medium not-italic">({group.orders.length} orders combined)</span>}
+                  {group.orders.length > 1 && <span className="ml-2 text-warning font-medium not-italic">({group.orders.length} orders combined)</span>}
                 </div>
                 <div className="text-sm mb-3 space-y-1">
                   {group.allItems.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-gray-700">
+                    <div key={idx} className="flex justify-between text-foreground">
                       <span className="font-medium">{item.qty}x {item.name}</span>
                     </div>
                   ))}
                 </div>
-                <div className="text-xs text-gray-400 mb-3">
+                <div className="text-xs text-muted-foreground mb-3">
                   ID: #{group.orders.map(o => o.id.slice(-6)).join(', #')}
                 </div>
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
-                    className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/30"
+                    className="flex-1 bg-success hover:bg-success/90 text-success-foreground shadow-lg"
                     onClick={() => handleAcceptGroup(group)}
                   >
                     <Check className="w-3 h-3 mr-1" /> Accept{group.orders.length > 1 ? ' All' : ''} & Print
                   </Button>
                   <Button 
                     size="sm" 
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/30"
+                    className="bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg"
                     onClick={() => handleRejectGroup(group)}
                   >
                     <X className="w-3 h-3" />
