@@ -132,6 +132,10 @@ CREATE TABLE IF NOT EXISTS settings (
   point_value_in_rupees DECIMAL DEFAULT 1,
   max_discount_rupees DECIMAL DEFAULT 500,
   max_discount_points INTEGER DEFAULT 500,
+  -- Kitchen settings
+  kds_enabled BOOLEAN DEFAULT false,
+  kot_printing_enabled BOOLEAN DEFAULT false,
+  kitchen_fullscreen_mode BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

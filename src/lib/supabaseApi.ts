@@ -181,6 +181,10 @@ const mapSettingsFromDb = (row: any) => {
     pointValueInRupees: Number(row.point_value_in_rupees ?? 1),
     maxDiscountRupees: Number(row.max_discount_rupees ?? 500),
     maxDiscountPoints: row.max_discount_points ?? 500,
+    // Kitchen settings
+    kdsEnabled: row.kds_enabled ?? false,
+    kotPrintingEnabled: row.kot_printing_enabled ?? false,
+    kitchenFullscreenMode: row.kitchen_fullscreen_mode ?? false,
   };
 };
 
@@ -203,6 +207,10 @@ const mapSettingsToDb = (s: any) => {
   if (s.pointValueInRupees !== undefined) db.point_value_in_rupees = s.pointValueInRupees;
   if (s.maxDiscountRupees !== undefined) db.max_discount_rupees = s.maxDiscountRupees;
   if (s.maxDiscountPoints !== undefined) db.max_discount_points = s.maxDiscountPoints;
+  // Kitchen settings
+  if (s.kdsEnabled !== undefined) db.kds_enabled = s.kdsEnabled;
+  if (s.kotPrintingEnabled !== undefined) db.kot_printing_enabled = s.kotPrintingEnabled;
+  if (s.kitchenFullscreenMode !== undefined) db.kitchen_fullscreen_mode = s.kitchenFullscreenMode;
   db.updated_at = new Date().toISOString();
   return db;
 };
