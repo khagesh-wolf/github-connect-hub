@@ -1886,48 +1886,7 @@ export default function Admin() {
                   </div>
                 </div>
 
-                {/* Social Media Links */}
-                <div className="bg-card rounded-xl border border-border p-5">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    Social Media Links
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">Only links that are filled will be shown to customers.</p>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Instagram URL</label>
-                      <Input 
-                        value={settings.instagramUrl || ''} 
-                        onChange={e => updateSettings({ instagramUrl: e.target.value })} 
-                        placeholder="https://instagram.com/yourhandle"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Facebook URL</label>
-                      <Input 
-                        value={settings.facebookUrl || ''} 
-                        onChange={e => updateSettings({ facebookUrl: e.target.value })} 
-                        placeholder="https://facebook.com/yourpage"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">TikTok URL</label>
-                      <Input 
-                        value={settings.tiktokUrl || ''} 
-                        onChange={e => updateSettings({ tiktokUrl: e.target.value })} 
-                        placeholder="https://tiktok.com/@yourhandle"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Google Review URL</label>
-                      <Input 
-                        value={settings.googleReviewUrl || ''} 
-                        onChange={e => updateSettings({ googleReviewUrl: e.target.value })} 
-                        placeholder="https://g.page/r/your-review-link"
-                      />
-                    </div>
-                  </div>
-                </div>
+               
               </div>
 
               {/* Right Column */}
@@ -2044,6 +2003,48 @@ export default function Admin() {
                       }}
                     />
                   </div>
+                   {/* Social Media Links */}
+                <div className="bg-card rounded-xl border border-border p-5">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Social Media Links
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">Only links that are filled will be shown to customers.</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Instagram URL</label>
+                      <Input 
+                        value={settings.instagramUrl || ''} 
+                        onChange={e => updateSettings({ instagramUrl: e.target.value })} 
+                        placeholder="https://instagram.com/yourhandle"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Facebook URL</label>
+                      <Input 
+                        value={settings.facebookUrl || ''} 
+                        onChange={e => updateSettings({ facebookUrl: e.target.value })} 
+                        placeholder="https://facebook.com/yourpage"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">TikTok URL</label>
+                      <Input 
+                        value={settings.tiktokUrl || ''} 
+                        onChange={e => updateSettings({ tiktokUrl: e.target.value })} 
+                        placeholder="https://tiktok.com/@yourhandle"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Google Review URL</label>
+                      <Input 
+                        value={settings.googleReviewUrl || ''} 
+                        onChange={e => updateSettings({ googleReviewUrl: e.target.value })} 
+                        placeholder="https://g.page/r/your-review-link"
+                      />
+                    </div>
+                  </div>
+                </div>
                   
                   {/* Point System Configuration - Only shown when enabled */}
                   {settings.pointSystemEnabled && (
