@@ -470,21 +470,37 @@ export default function TableOrder() {
     
     const observerOptions = {
       root: null,
-      rootMargin: '-150px 0px -50% 0px', // Account for sticky header
-      threshold: 0
+      rootMargin: '-120px 0px -70% 0px', // Smaller top margin for better first category detection
+      threshold: [0, 0.1, 0.2, 0.3] // Multiple thresholds for better detection
     };
+
+    // Track which categories are currently visible
+    const visibleCategories = new Set<string>();
 
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
       if (isScrolling) return; // Don't update during manual scroll
       
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const categoryId = entry.target.id.replace('cat-', '');
-          if (categoryId && categoryId !== 'Favorites') {
-            setActiveCategory(categoryId);
+        const categoryId = entry.target.id.replace('cat-', '');
+        if (categoryId && categoryId !== 'Favorites') {
+          if (entry.isIntersecting) {
+            visibleCategories.add(categoryId);
+          } else {
+            visibleCategories.delete(categoryId);
           }
         }
       });
+
+      // Select the first visible category based on DOM order
+      if (visibleCategories.size > 0) {
+        const sortedCategories = categories
+          .map(c => c.name)
+          .filter(name => visibleCategories.has(name));
+        
+        if (sortedCategories.length > 0) {
+          setActiveCategory(sortedCategories[0]);
+        }
+      }
     };
 
     const observer = new IntersectionObserver(observerCallback, observerOptions);
@@ -1481,7 +1497,7 @@ export default function TableOrder() {
                 }
                 setFabOpen(false);
               }}
-              className="flex items-center gap-2 bg-[#fff8e1] border border-[#ffe0b2] shadow-lg px-4 py-3 rounded-full text-sm font-semibold text-[#f39c12] fab-item-2"
+              className="flex items-center gap-2 bg-warning/15 border border-warning/30 shadow-lg px-4 py-3 rounded-full text-sm font-semibold text-warning fab-item-2"
             >
               <Bell className="w-4 h-4" /> Call Waiter
             </button>
@@ -1490,7 +1506,7 @@ export default function TableOrder() {
                 if (navigator.vibrate) navigator.vibrate(10);
                 window.location.reload();
               }}
-              className="flex items-center gap-2 bg-white border border-[#eee] shadow-lg px-4 py-3 rounded-full text-sm font-semibold text-[#333] fab-item-3"
+              className="flex items-center gap-2 bg-card border border-border shadow-lg px-4 py-3 rounded-full text-sm font-semibold text-foreground fab-item-3"
             >
               <RefreshCw className="w-4 h-4" /> Refresh App
             </button>
@@ -1522,8 +1538,8 @@ export default function TableOrder() {
       )}
 
       {/* Copyright Footer */}
-      <footer className="py-4 text-center border-t border-[#eee] bg-white mt-auto">
-        <p className="text-xs text-[#999]">
+      <footer className="py-4 text-center border-t border-border bg-card mt-8">
+        <p className="text-xs text-muted-foreground">
           © {new Date().getFullYear()} {settings.restaurantName}. Developed by{' '}
           <a href="https://khagesh.com.np" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
             Khagesh
