@@ -43,6 +43,7 @@ export default function Waiter() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmDialog, setConfirmDialog] = useState(false);
+  const [cartPanelOpen, setCartPanelOpen] = useState(false);
 
   // Sound notification refs for ready orders
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -569,12 +570,120 @@ export default function Waiter() {
             <div className="p-4 bg-card border-t border-border">
               <Button 
                 className="w-full h-14 gradient-primary text-primary-foreground font-bold rounded-xl"
-                onClick={() => setStep('cart')}
+                onClick={() => setCartPanelOpen(true)}
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 View Cart ({cartItemCount} items) - रू{cartTotal}
               </Button>
             </div>
+          )}
+
+          {/* Slide-up Cart Panel */}
+          {cartPanelOpen && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 bg-black/40 z-[100] animate-fade-in"
+                onClick={() => setCartPanelOpen(false)}
+              />
+              
+              {/* Panel */}
+              <div className="fixed bottom-0 left-0 right-0 z-[101] bg-card rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-slide-up">
+                {/* Handle */}
+                <div className="flex justify-center py-3">
+                  <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
+                </div>
+                
+                {/* Header */}
+                <div className="px-5 pb-4 flex items-center justify-between border-b border-border">
+                  <div>
+                    <h3 className="text-xl font-bold">Your Cart</h3>
+                    <p className="text-sm text-muted-foreground">{cartItemCount} items • Table {selectedTable}</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setCartPanelOpen(false)}
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+                
+                {/* Cart Items */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                  {cart.map(item => (
+                    <div key={item.id} className="flex items-center gap-4 bg-muted/30 rounded-xl p-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium truncate">{item.name}</h4>
+                        <p className="text-sm text-muted-foreground">रू{item.price} × {item.qty}</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleUpdateQty(item.id, -1)}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <span className="w-6 text-center font-bold">{item.qty}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleUpdateQty(item.id, 1)}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="text-right min-w-[60px]">
+                        <p className="font-bold">रू{item.price * item.qty}</p>
+                      </div>
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => handleRemoveFromCart(item.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Order Notes */}
+                <div className="px-5 pb-3">
+                  <Textarea
+                    placeholder="Add special instructions..."
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    className="resize-none"
+                    rows={2}
+                  />
+                </div>
+                
+                {/* Footer */}
+                <div className="p-5 pt-0 space-y-3">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span>रू{cartTotal}</span>
+                  </div>
+                  <Button 
+                    className="w-full h-14 gradient-primary text-primary-foreground font-bold rounded-xl text-lg"
+                    onClick={() => {
+                      setCartPanelOpen(false);
+                      setConfirmDialog(true);
+                    }}
+                  >
+                    <Send className="w-5 h-5 mr-2" />
+                    Send to Kitchen
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}
