@@ -10,6 +10,10 @@ import Hub from "./pages/Hub";
 import TableOrder from "./pages/TableOrder";
 import ScanTable from "./pages/ScanTable";
 import Install from "./pages/Install";
+import InstallCounter from "./pages/install/InstallCounter";
+import InstallAdmin from "./pages/install/InstallAdmin";
+import InstallKitchen from "./pages/install/InstallKitchen";
+import InstallWaiter from "./pages/install/InstallWaiter";
 import Counter from "./pages/Counter";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
@@ -34,6 +38,10 @@ const App = () => (
               {/* Staff hub - requires knowing the URL */}
               <Route path="/hub" element={<Hub />} />
               <Route path="/install" element={<Install />} />
+              <Route path="/install/counter" element={<InstallCounter />} />
+              <Route path="/install/admin" element={<InstallAdmin />} />
+              <Route path="/install/kitchen" element={<InstallKitchen />} />
+              <Route path="/install/waiter" element={<InstallWaiter />} />
               <Route path="/table/:tableNumber" element={<TableOrder />} />
               
               {/* Staff routes */}
