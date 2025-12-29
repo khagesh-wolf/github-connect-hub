@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useStore } from "@/store/useStore";
+import { useSettings } from "@/hooks/useSettings";
 import { Download, Monitor, CheckCircle2, Loader2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,7 @@ function isPWA(): boolean {
 
 export default function InstallCounter() {
   const navigate = useNavigate();
-  const { settings } = useStore();
+  const { settings, isLoading } = useSettings();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -66,6 +66,17 @@ export default function InstallCounter() {
     setDeferredPrompt(null);
   };
 
+  const appName = settings.restaurantName || "Counter";
+  const appLogo = settings.logo;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+      </div>
+    );
+  }
+
   if (isInstalling) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 text-white">
@@ -73,7 +84,7 @@ export default function InstallCounter() {
           <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
             <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Installing Counter App...</h2>
+          <h2 className="text-2xl font-bold mb-2">Installing {appName} Counter...</h2>
           <p className="text-slate-400">Setting up your point-of-sale terminal.</p>
           <div className="mt-6 flex justify-center gap-1">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -92,7 +103,7 @@ export default function InstallCounter() {
           <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
             <CheckCircle2 className="w-10 h-10 text-emerald-400" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Counter App Installed!</h2>
+          <h2 className="text-2xl font-bold mb-2">{appName} Counter Installed!</h2>
           <p className="text-slate-400 mb-6">Your point-of-sale terminal is ready.</p>
           <Button 
             onClick={() => navigate('/counter')} 
@@ -110,10 +121,10 @@ export default function InstallCounter() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 text-white">
       <div className="text-center mb-8">
-        {settings.logo ? (
+        {appLogo ? (
           <img
-            src={settings.logo}
-            alt={settings.restaurantName}
+            src={appLogo}
+            alt={appName}
             className="w-24 h-24 rounded-2xl object-cover mx-auto mb-6 shadow-2xl shadow-emerald-500/30"
           />
         ) : (
@@ -121,8 +132,8 @@ export default function InstallCounter() {
             <Monitor className="w-12 h-12 text-white" />
           </div>
         )}
-        <h1 className="text-3xl font-bold">{settings.restaurantName || "Counter Terminal"}</h1>
-        <p className="text-slate-400 mt-2">Point of Sale System</p>
+        <h1 className="text-3xl font-bold">{appName}</h1>
+        <p className="text-slate-400 mt-2">Counter Terminal</p>
       </div>
 
       <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 max-w-md w-full border border-white/10">
@@ -143,7 +154,7 @@ export default function InstallCounter() {
             size="lg"
           >
             <Download className="w-5 h-5 mr-2" />
-            Install Counter App
+            Install {appName} Counter
           </Button>
         ) : (
           <div className="space-y-4">

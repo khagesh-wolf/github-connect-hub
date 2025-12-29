@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useStore } from "@/store/useStore";
+import { useSettings } from "@/hooks/useSettings";
 import { Download, ChefHat, CheckCircle2, Loader2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,7 @@ function isPWA(): boolean {
 
 export default function InstallKitchen() {
   const navigate = useNavigate();
-  const { settings } = useStore();
+  const { settings, isLoading } = useSettings();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -66,6 +66,17 @@ export default function InstallKitchen() {
     setDeferredPrompt(null);
   };
 
+  const appName = settings.restaurantName || "Kitchen";
+  const appLogo = settings.logo;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-950 via-slate-900 to-orange-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
+      </div>
+    );
+  }
+
   if (isInstalling) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-950 via-slate-900 to-orange-950 flex flex-col items-center justify-center p-6 text-white">
@@ -110,10 +121,10 @@ export default function InstallKitchen() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-950 via-slate-900 to-orange-950 flex flex-col items-center justify-center p-6 text-white">
       <div className="text-center mb-8">
-        {settings.logo ? (
+        {appLogo ? (
           <img
-            src={settings.logo}
-            alt={settings.restaurantName}
+            src={appLogo}
+            alt={appName}
             className="w-24 h-24 rounded-2xl object-cover mx-auto mb-6 shadow-2xl shadow-orange-500/30"
           />
         ) : (
@@ -121,8 +132,8 @@ export default function InstallKitchen() {
             <ChefHat className="w-12 h-12 text-white" />
           </div>
         )}
-        <h1 className="text-3xl font-bold">{settings.restaurantName || "Kitchen Display"}</h1>
-        <p className="text-slate-400 mt-2">Order Management System</p>
+        <h1 className="text-3xl font-bold">{appName}</h1>
+        <p className="text-slate-400 mt-2">Kitchen Display</p>
       </div>
 
       <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 max-w-md w-full border border-white/10">
