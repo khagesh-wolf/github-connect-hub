@@ -1783,9 +1783,13 @@ export default function Admin() {
                       </div>
                       <Switch
                         checked={settings.kdsEnabled || false}
-                        onCheckedChange={(checked) => {
-                          updateSettings({ kdsEnabled: checked });
-                          toast.success(checked ? 'Kitchen Display enabled' : 'Kitchen Display disabled');
+                        onCheckedChange={async (checked) => {
+                          try {
+                            await updateSettings({ kdsEnabled: checked });
+                            toast.success(checked ? 'Kitchen Display enabled' : 'Kitchen Display disabled');
+                          } catch (err) {
+                            toast.error('Failed to save KDS setting. Please ensure your database is updated.');
+                          }
                         }}
                       />
                     </div>
@@ -1799,9 +1803,13 @@ export default function Admin() {
                       </div>
                       <Switch
                         checked={settings.kotPrintingEnabled || false}
-                        onCheckedChange={(checked) => {
-                          updateSettings({ kotPrintingEnabled: checked });
-                          toast.success(checked ? 'KOT printing enabled' : 'KOT printing disabled');
+                        onCheckedChange={async (checked) => {
+                          try {
+                            await updateSettings({ kotPrintingEnabled: checked });
+                            toast.success(checked ? 'KOT printing enabled' : 'KOT printing disabled');
+                          } catch (err) {
+                            toast.error('Failed to save KOT setting. Please ensure your database is updated.');
+                          }
                         }}
                       />
                     </div>
@@ -1816,9 +1824,13 @@ export default function Admin() {
                       </div>
                       <Switch
                         checked={settings.kitchenFullscreenMode || false}
-                        onCheckedChange={(checked) => {
-                          updateSettings({ kitchenFullscreenMode: checked });
-                          toast.success(checked ? 'Fullscreen mode enabled' : 'Fullscreen mode disabled');
+                        onCheckedChange={async (checked) => {
+                          try {
+                            await updateSettings({ kitchenFullscreenMode: checked });
+                            toast.success(checked ? 'Fullscreen mode enabled' : 'Fullscreen mode disabled');
+                          } catch (err) {
+                            toast.error('Failed to save fullscreen setting. Please ensure your database is updated.');
+                          }
                         }}
                       />
                     </div>
