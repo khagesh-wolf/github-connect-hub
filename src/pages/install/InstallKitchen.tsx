@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "@/hooks/useSettings";
 import { useSavePWAStartPage } from "@/hooks/usePWAStartPage";
+import { useDynamicManifest } from "@/hooks/useDynamicManifest";
 import { Download, ChefHat, CheckCircle2, Loader2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,8 +20,9 @@ export default function InstallKitchen() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   
-  // Save start page for PWA redirect
+  // Save start page for PWA redirect and set dynamic manifest
   useSavePWAStartPage();
+  useDynamicManifest();
 
   useEffect(() => {
     if (isPWA()) {
