@@ -1538,7 +1538,7 @@ export default function TableOrder() {
       )}
 
       {/* Copyright Footer */}
-      <footer className="py-4 text-center border-t border-border bg-card mt-8 mb-20">
+      <footer className={`py-4 text-center border-t border-border bg-card mt-8 ${cart.length > 0 ? 'pb-24' : ''}`}>
         <p className="text-xs text-muted-foreground">
           © {new Date().getFullYear()} {settings.restaurantName}. Developed by{' '}
           <a href="https://khagesh.com.np" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
