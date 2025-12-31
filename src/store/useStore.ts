@@ -359,7 +359,9 @@ export const useStore = create<StoreState>()((set, get) => ({
       menuItemId: item.menuItemId,
       name: item.name,
       qty: item.qty,
-      price: item.price
+      price: item.price,
+      portionSize: item.portionSize,
+      portionName: item.portionName,
     }));
     const newOrder: Order = {
       id: generateId(),
@@ -397,6 +399,8 @@ export const useStore = create<StoreState>()((set, get) => ({
       name: item.name,
       qty: item.qty,
       price: item.price,
+      portionSize: item.portionSize,
+      portionName: item.portionName,
       status: 'pending' as OrderItemStatus,
       completedQty: 0
     }));

@@ -1,13 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Coffee, ChefHat, CreditCard, LayoutDashboard, Settings } from 'lucide-react';
+import { Coffee, CreditCard, LayoutDashboard, Settings } from 'lucide-react';
 import { ServerConfig } from '@/components/ServerConfig';
 import { SyncStatus } from '@/components/SyncStatus';
 
 const navItems = [
   { path: '/', label: 'Hub', icon: LayoutDashboard },
   { path: '/counter', label: 'Counter', icon: CreditCard },
-  { path: '/kitchen', label: 'Kitchen', icon: ChefHat },
   { path: '/admin', label: 'Admin', icon: Settings },
 ];
 
