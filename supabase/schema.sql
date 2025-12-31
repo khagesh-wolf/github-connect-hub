@@ -7,6 +7,8 @@
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm"; -- For fast text search
+CREATE EXTENSION IF NOT EXISTS "pg_cron"; -- For scheduled jobs
+CREATE EXTENSION IF NOT EXISTS "pg_net";  -- For HTTP requests from cron
 
 -- ===========================================
 -- DROP EXISTING OBJECTS (Clean Slate)
@@ -755,6 +757,31 @@ VALUES (1, 'Sajilo Orders', 10)
 ON CONFLICT (id) DO NOTHING;
 
 -- ===========================================
+-- SCHEDULED CRON JOBS
+-- ===========================================
+
+-- Unschedule existing jobs if they exist
+SELECT cron.unschedule('weekly-archive-old-orders') 
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'weekly-archive-old-orders');
+
+SELECT cron.unschedule('daily-cleanup-payment-blocks')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'daily-cleanup-payment-blocks');
+
+-- Weekly cleanup: Archive orders older than 30 days (runs every Sunday at 3 AM)
+SELECT cron.schedule(
+  'weekly-archive-old-orders',
+  '0 3 * * 0', -- Every Sunday at 3:00 AM
+  $$SELECT archive_old_orders(30)$$
+);
+
+-- Daily cleanup: Remove expired payment blocks (runs at 4 AM daily)
+SELECT cron.schedule(
+  'daily-cleanup-payment-blocks',
+  '0 4 * * *', -- Every day at 4:00 AM
+  $$DELETE FROM payment_blocks WHERE expires_at < NOW()$$
+);
+
+-- ===========================================
 -- MAINTENANCE & OPTIMIZATION NOTES
 -- ===========================================
 -- 
@@ -770,11 +797,16 @@ ON CONFLICT (id) DO NOTHING;
 -- 9. Triggers for auto-updating timestamps and customer stats
 -- 10. Batch inventory deduction function to reduce round-trips
 --
--- RECOMMENDED CRON JOBS:
--- Daily: SELECT archive_old_orders(30);
+-- SCHEDULED CRON JOBS:
+-- - weekly-archive-old-orders: Archives orders older than 30 days (Sunday 3 AM)
+-- - daily-cleanup-payment-blocks: Removes expired payment blocks (Daily 4 AM)
 -- 
 -- FREE TIER LIMITS:
 -- - 500MB database (schema optimized for minimal storage)
 -- - 50 concurrent connections (use connection pooling)
 -- - 2GB bandwidth (indexes reduce data transfer)
+--
+-- MANUAL MAINTENANCE:
+-- View cron job history: SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
+-- View scheduled jobs: SELECT * FROM cron.job;
 -- ===========================================
