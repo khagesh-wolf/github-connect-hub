@@ -268,27 +268,62 @@ export function InventoryManager() {
               {inventoryMenuItems.map(item => {
                 const invItem = inventoryItems.find(ii => ii.menuItemId === item.id);
                 if (!invItem) return null;
-                const isLow = invItem.currentStock <= (invItem.lowStockThreshold || 5);
+                const threshold = invItem.lowStockThreshold || 5;
+                const stockPercent = threshold > 0 ? (invItem.currentStock / threshold) * 100 : 100;
+                
+                // Stock level indicators
+                const isOutOfStock = invItem.currentStock <= 0;
+                const isCritical = !isOutOfStock && stockPercent <= 50; // 50% or less of threshold
+                const isLow = !isOutOfStock && !isCritical && stockPercent <= 100; // At or below threshold
+                const isGood = stockPercent > 100 && stockPercent <= 200; // Up to 2x threshold
+                const isHealthy = stockPercent > 200; // More than 2x threshold
+                
+                // Get status color and label
+                const getStockStatus = () => {
+                  if (isOutOfStock) return { color: 'bg-destructive', textColor: 'text-destructive', label: 'Out of Stock', borderColor: 'border-destructive' };
+                  if (isCritical) return { color: 'bg-destructive', textColor: 'text-destructive', label: 'Critical', borderColor: 'border-destructive' };
+                  if (isLow) return { color: 'bg-warning', textColor: 'text-warning', label: 'Low', borderColor: 'border-warning' };
+                  if (isGood) return { color: 'bg-primary', textColor: 'text-primary', label: 'Good', borderColor: 'border-primary' };
+                  return { color: 'bg-green-500', textColor: 'text-green-500', label: 'Healthy', borderColor: 'border-green-500' };
+                };
+                
+                const status = getStockStatus();
                 
                 return (
-                  <Card key={item.id} className={isLow ? 'border-warning' : ''}>
+                  <Card key={item.id} className={`${status.borderColor} border-l-4`}>
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="font-medium">{item.name}</h4>
                           <p className="text-sm text-muted-foreground">{item.category}</p>
                         </div>
-                        {isLow && <AlertTriangle className="w-5 h-5 text-warning" />}
+                        <Badge variant={isOutOfStock || isCritical ? 'destructive' : isLow ? 'outline' : 'secondary'} className="text-xs">
+                          {status.label}
+                        </Badge>
                       </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className={`text-2xl font-bold ${isLow ? 'text-warning' : ''}`}>
-                          {invItem.currentStock}
-                        </span>
-                        <span className="text-muted-foreground">{invItem.unit}</span>
+                      
+                      {/* Stock level progress bar */}
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-2xl font-bold ${status.textColor}`}>
+                            {invItem.currentStock}
+                          </span>
+                          <span className="text-muted-foreground text-sm">{invItem.unit}</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                          <div 
+                            className={`h-full ${status.color} transition-all duration-300`}
+                            style={{ width: `${Math.min(stockPercent, 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Threshold: {threshold} {invItem.unit}
+                        </p>
                       </div>
+                      
                       <Button 
                         size="sm" 
-                        variant="outline" 
+                        variant={isOutOfStock || isCritical ? 'default' : 'outline'}
                         className="w-full mt-3"
                         onClick={() => {
                           setStockMenuItemId(item.id);

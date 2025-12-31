@@ -1204,6 +1204,12 @@ export default function TableOrder() {
           const renderMenuItem = (item: typeof menuItems[0]) => {
             const qty = getItemQty(item.id);
             const isFav = isFavorite(item.id);
+            
+            // Check if item has inventory portions with prices (hide menu price if so)
+            const portions = getPortionsByItem(item.id);
+            const portionsWithPrices = portions.filter(p => p.fixedPrice != null);
+            const hasInventoryPricing = portionsWithPrices.length > 0;
+            
             return (
               <div key={item.id} className={`flex justify-between border-b border-border pb-4 mb-5 ${!item.available ? 'opacity-60' : ''}`}>
                 <div className="flex-1 pr-4">
@@ -1225,7 +1231,14 @@ export default function TableOrder() {
                       <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
                     </button>
                   </div>
-                  <p className="font-medium text-foreground">रू{item.price}</p>
+                  {/* Show price range for inventory items with portions, or regular price otherwise */}
+                  {hasInventoryPricing ? (
+                    <p className="font-medium text-foreground">
+                      रू{Math.min(...portionsWithPrices.map(p => p.fixedPrice!))} - रू{Math.max(...portionsWithPrices.map(p => p.fixedPrice!))}
+                    </p>
+                  ) : (
+                    <p className="font-medium text-foreground">रू{item.price}</p>
+                  )}
                   {item.description && (
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                   )}
@@ -1283,66 +1296,11 @@ export default function TableOrder() {
             <div key={catName} id={`cat-${catName}`}>
               <h2 className="text-2xl font-bold mb-3">{catName}</h2>
               
-              {/* Subcategory pills (if any) */}
-              {subcats.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto mb-4 pb-2 scrollbar-hide">
-                  <button
-                    onClick={() => setActiveSubcategory(null)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                      activeSubcategory === null && activeCategory === catName
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    All
-                  </button>
-                  {subcats.map(subcat => (
-                    <button
-                      key={subcat.id}
-                      onClick={() => setActiveSubcategory(subcat.name)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                        activeSubcategory === subcat.name && activeCategory === catName
-                          ? 'bg-primary/20 text-primary border border-primary/30'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {subcat.name}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Subcategory pills removed - items shown directly under categories */}
               
-              {/* Items display based on subcategory selection */}
-              {subcats.length === 0 ? (
-                // No subcategories - show all direct items
-                directItems.map(renderMenuItem)
-              ) : activeSubcategory === null ? (
-                // "All" selected - show all items organized by subcategory
-                <>
-                  {/* Direct items first */}
-                  {directItems.length > 0 && directItems.map(renderMenuItem)}
-                  
-                  {/* Then each subcategory */}
-                  {subcats.map(subcat => {
-                    const subItems = menuItems.filter(item => item.category === subcat.name);
-                    if (subItems.length === 0) return null;
-                    return (
-                      <div key={subcat.id} className="mt-4">
-                        <h3 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-                          {subcat.name}
-                        </h3>
-                        {subItems.map(renderMenuItem)}
-                      </div>
-                    );
-                  })}
-                </>
-              ) : (
-                // Specific subcategory selected
-                menuItems
-                  .filter(item => item.category === activeSubcategory)
-                  .map(renderMenuItem)
-              )}
+              {/* Display all items - direct items first, then subcategory items */}
+              {directItems.map(renderMenuItem)}
+              {subcatItems.map(renderMenuItem)}
             </div>
           );
         })}
