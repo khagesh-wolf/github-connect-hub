@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { 
   Check,
   X,
@@ -24,7 +26,8 @@ import {
   Sun,
   Moon,
   Timer,
-  ChefHat
+  ChefHat,
+  CalendarIcon
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from 'sonner';
@@ -38,6 +41,8 @@ import { CashRegister } from '@/components/CashRegister';
 import { closeTableSession } from '@/lib/sessionManager';
 import { recordPaymentBlocksForPhones } from '@/lib/paymentBlockApi';
 import { LowStockAlert } from '@/components/LowStockAlert';
+import { format, parse } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { useBackupReminder } from '@/hooks/useBackupReminder';
 import { exportDatabase, dismissBackupReminder } from '@/lib/databaseBackup';
 import { Database, Download } from 'lucide-react';
@@ -1235,12 +1240,33 @@ export default function Counter() {
           {activeTab === 'history' && (
             <div>
               <div className="mb-4 flex flex-wrap gap-3">
-                <Input 
-                  type="date" 
-                  value={historyDate}
-                  onChange={(e) => setHistoryDate(e.target.value)}
-                  className="w-full sm:w-48"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full sm:w-48 justify-start text-left font-normal",
+                        !historyDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {historyDate ? format(parse(historyDate, 'yyyy-MM-dd', new Date()), 'PPP') : <span>Select date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-popover" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={historyDate ? parse(historyDate, 'yyyy-MM-dd', new Date()) : undefined}
+                      onSelect={(date) => { 
+                        if (date) {
+                          setHistoryDate(format(date, 'yyyy-MM-dd')); 
+                        }
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
                 <Button onClick={() => setHistoryDate('')}>Clear Filter</Button>
               </div>
               <div className="bg-card rounded-lg overflow-hidden shadow-sm border border-border">

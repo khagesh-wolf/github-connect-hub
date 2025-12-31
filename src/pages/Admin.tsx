@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { 
   Plus, Edit, Trash2, LogOut, Settings, LayoutDashboard, 
   UtensilsCrossed, Users, QrCode, History, TrendingUp, ShoppingBag, DollarSign,
   Download, Search, Eye, UserCog, BarChart3, Calendar, Image as ImageIcon, ToggleLeft, ToggleRight,
   Check, X, Menu as MenuIcon, MonitorDot, GripVertical, Upload, Loader2, Shield, Pencil,
-  Sun, Moon, ChefHat, Package, Database, AlertTriangle, HardDrive
+  Sun, Moon, ChefHat, Package, Database, AlertTriangle, HardDrive, CalendarIcon
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,6 +43,8 @@ import { uploadToR2 } from '@/lib/r2Client';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { InventoryManager } from '@/components/InventoryManager';
 import { AccountingDashboard } from '@/components/AccountingDashboard';
+import { format, parse } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { 
   exportDatabase, 
   parseBackupFile, 
@@ -860,27 +864,65 @@ export default function Admin() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">From</label>
-                  <Input
-                    type="date"
-                    value={dashboardDateFrom}
-                    onChange={e => {
-                      setDashboardDateFrom(e.target.value);
-                      setDashboardPreset('custom');
-                    }}
-                    className="w-full text-sm"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal text-sm",
+                          !dashboardDateTo && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dashboardDateTo ? format(parse(dashboardDateTo, 'yyyy-MM-dd', new Date()), 'PPP') : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-popover" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={dashboardDateTo ? parse(dashboardDateTo, 'yyyy-MM-dd', new Date()) : undefined}
+                        onSelect={(date) => { 
+                          if (date) {
+                            setDashboardDateTo(format(date, 'yyyy-MM-dd')); 
+                            setDashboardPreset('custom'); 
+                          }
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">To</label>
-                  <Input
-                    type="date"
-                    value={dashboardDateTo}
-                    onChange={e => {
-                      setDashboardDateTo(e.target.value);
-                      setDashboardPreset('custom');
-                    }}
-                    className="w-full text-sm"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal text-sm",
+                          !dashboardDateFrom && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dashboardDateFrom ? format(parse(dashboardDateFrom, 'yyyy-MM-dd', new Date()), 'PPP') : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-popover" align="end">
+                      <CalendarComponent
+                        mode="single"
+                        selected={dashboardDateFrom ? parse(dashboardDateFrom, 'yyyy-MM-dd', new Date()) : undefined}
+                        onSelect={(date) => { 
+                          if (date) {
+                            setDashboardDateFrom(format(date, 'yyyy-MM-dd')); 
+                            setDashboardPreset('custom'); 
+                          }
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
@@ -1032,27 +1074,65 @@ export default function Admin() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">From</label>
-                  <Input
-                    type="date"
-                    value={analyticsDateFrom}
-                    onChange={e => {
-                      setAnalyticsDateFrom(e.target.value);
-                      setAnalyticsPreset('custom');
-                    }}
-                    className="w-full text-sm"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal text-sm",
+                          !analyticsDateTo && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {analyticsDateTo ? format(parse(analyticsDateTo, 'yyyy-MM-dd', new Date()), 'PPP') : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-popover" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={analyticsDateTo ? parse(analyticsDateTo, 'yyyy-MM-dd', new Date()) : undefined}
+                        onSelect={(date) => { 
+                          if (date) {
+                            setAnalyticsDateTo(format(date, 'yyyy-MM-dd')); 
+                            setAnalyticsPreset('custom'); 
+                          }
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">To</label>
-                  <Input
-                    type="date"
-                    value={analyticsDateTo}
-                    onChange={e => {
-                      setAnalyticsDateTo(e.target.value);
-                      setAnalyticsPreset('custom');
-                    }}
-                    className="w-full text-sm"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal text-sm",
+                          !analyticsDateFrom && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {analyticsDateFrom ? format(parse(analyticsDateFrom, 'yyyy-MM-dd', new Date()), 'PPP') : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-popover" align="end">
+                      <CalendarComponent
+                        mode="single"
+                        selected={analyticsDateFrom ? parse(analyticsDateFrom, 'yyyy-MM-dd', new Date()) : undefined}
+                        onSelect={(date) => { 
+                          if (date) {
+                            setAnalyticsDateFrom(format(date, 'yyyy-MM-dd')); 
+                            setAnalyticsPreset('custom'); 
+                          }
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
@@ -1435,18 +1515,60 @@ export default function Admin() {
                 />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Input
-                  type="date"
-                  value={historyDateFrom}
-                  onChange={e => setHistoryDateFrom(e.target.value)}
-                  className="flex-1 min-w-[130px]"
-                />
-                <Input
-                  type="date"
-                  value={historyDateTo}
-                  onChange={e => setHistoryDateTo(e.target.value)}
-                  className="flex-1 min-w-[130px]"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 min-w-[130px] justify-start text-left font-normal text-sm",
+                        !historyDateTo && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {historyDateTo ? format(parse(historyDateTo, 'yyyy-MM-dd', new Date()), 'PPP') : <span>From</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-popover" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={historyDateTo ? parse(historyDateTo, 'yyyy-MM-dd', new Date()) : undefined}
+                      onSelect={(date) => { 
+                        if (date) {
+                          setHistoryDateTo(format(date, 'yyyy-MM-dd')); 
+                        }
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 min-w-[130px] justify-start text-left font-normal text-sm",
+                        !historyDateFrom && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {historyDateFrom ? format(parse(historyDateFrom, 'yyyy-MM-dd', new Date()), 'PPP') : <span>To</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-popover" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={historyDateFrom ? parse(historyDateFrom, 'yyyy-MM-dd', new Date()) : undefined}
+                      onSelect={(date) => { 
+                        if (date) {
+                          setHistoryDateFrom(format(date, 'yyyy-MM-dd')); 
+                        }
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
                 <Button variant="outline" size="sm" onClick={() => { setHistorySearch(''); setHistoryDateFrom(''); setHistoryDateTo(''); }}>
                   Clear
                 </Button>
