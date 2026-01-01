@@ -400,17 +400,67 @@ export function DataProvider({ children }: DataProviderProps) {
         100
       );
 
-      // Attempt to re-establish Realtime immediately (don’t wait for backoff timers).
+      // Attempt to re-establish Realtime immediately (don't wait for backoff timers).
+      reconnectAttemptRef.current = 0;
+      setupRealtime();
+    };
+
+    // Handle tab visibility change - reconnect when user returns to the tab
+    const handleVisibilityChange = () => {
+      if (destroyed) return;
+      
+      if (document.visibilityState === 'visible') {
+        console.log('[DataProvider] Tab became visible — checking connection and refreshing data');
+        
+        // Reset reconnect attempts when tab becomes visible
+        reconnectAttemptRef.current = 0;
+        hasShownRealtimeToastRef.current = false;
+        
+        // Refresh data immediately when returning to tab
+        debouncedFetch(
+          'visibility_refresh',
+          async () => {
+            const [orders, waiterCalls] = await Promise.all([
+              ordersApi.getAll().catch(() => []),
+              waiterCallsApi.getAll().catch(() => []),
+            ]);
+            const store = useStore.getState();
+            store.setOrders(orders);
+            store.setWaiterCalls(waiterCalls);
+          },
+          100
+        );
+
+        // Re-establish realtime connection
+        setupRealtime();
+      }
+    };
+
+    // Handle window focus - also reconnect when window regains focus
+    const handleFocus = () => {
+      if (destroyed) return;
+      
+      // Only trigger if document is visible (avoids double-triggering with visibilitychange)
+      if (document.visibilityState !== 'visible') return;
+      
+      console.log('[DataProvider] Window focused — ensuring realtime connection');
+      
+      // Reset and reconnect
+      reconnectAttemptRef.current = 0;
       setupRealtime();
     };
 
     window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
 
     setupRealtime();
 
     // Cleanup
     return () => {
       window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
       destroyed = true;
       clearReconnectTimer();
       clearRealtimeWatchdog();
