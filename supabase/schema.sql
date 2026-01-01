@@ -480,30 +480,8 @@ CREATE POLICY "allow_all" ON item_portion_prices FOR ALL USING (true) WITH CHECK
 
 -- ===========================================
 -- REALTIME SUBSCRIPTIONS
+-- (Configured later in the "API ACCESS (Grants) + REALTIME SETUP" section)
 -- ===========================================
-
-DO $$
-DECLARE
-  tables TEXT[] := ARRAY['orders', 'waiter_calls', 'bills', 'inventory_items', 'menu_items', 'categories', 'settings'];
-  t TEXT;
-BEGIN
-  FOREACH t IN ARRAY tables LOOP
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_publication_tables 
-      WHERE pubname = 'supabase_realtime' AND tablename = t
-    ) THEN
-      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t);
-    END IF;
-  END LOOP;
-END $$;
-
--- Enable REPLICA IDENTITY FULL for complete row data in realtime
-ALTER TABLE orders REPLICA IDENTITY FULL;
-ALTER TABLE waiter_calls REPLICA IDENTITY FULL;
-ALTER TABLE bills REPLICA IDENTITY FULL;
-ALTER TABLE inventory_items REPLICA IDENTITY FULL;
-ALTER TABLE menu_items REPLICA IDENTITY FULL;
-ALTER TABLE settings REPLICA IDENTITY FULL;
 
 -- ===========================================
 -- OPTIMIZED FUNCTIONS
@@ -799,28 +777,39 @@ ALTER TABLE IF EXISTS transactions REPLICA IDENTITY FULL;
 ALTER TABLE IF EXISTS portion_options REPLICA IDENTITY FULL;
 ALTER TABLE IF EXISTS item_portion_prices REPLICA IDENTITY FULL;
 
--- Add tables to the realtime publication (idempotent)
+-- Add tables to the realtime publication (idempotent; safe to re-run after DROP/CREATE)
 DO $$
+DECLARE
+  tables TEXT[] := ARRAY[
+    'orders',
+    'bills',
+    'inventory_items',
+    'inventory_transactions',
+    'waiter_calls',
+    'menu_items',
+    'categories',
+    'settings',
+    'expenses',
+    'staff',
+    'customers',
+    'transactions',
+    'portion_options',
+    'item_portion_prices'
+  ];
+  t TEXT;
 BEGIN
-  PERFORM 1;
-  ALTER PUBLICATION supabase_realtime ADD TABLE orders;
-  ALTER PUBLICATION supabase_realtime ADD TABLE bills;
-  ALTER PUBLICATION supabase_realtime ADD TABLE inventory_items;
-  ALTER PUBLICATION supabase_realtime ADD TABLE inventory_transactions;
-  ALTER PUBLICATION supabase_realtime ADD TABLE waiter_calls;
-  ALTER PUBLICATION supabase_realtime ADD TABLE menu_items;
-  ALTER PUBLICATION supabase_realtime ADD TABLE categories;
-  ALTER PUBLICATION supabase_realtime ADD TABLE settings;
-  ALTER PUBLICATION supabase_realtime ADD TABLE expenses;
-  ALTER PUBLICATION supabase_realtime ADD TABLE staff;
-  ALTER PUBLICATION supabase_realtime ADD TABLE customers;
-  ALTER PUBLICATION supabase_realtime ADD TABLE transactions;
-  ALTER PUBLICATION supabase_realtime ADD TABLE portion_options;
-  ALTER PUBLICATION supabase_realtime ADD TABLE item_portion_prices;
+  FOREACH t IN ARRAY tables LOOP
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public'
+        AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
 EXCEPTION
-  WHEN duplicate_object THEN
-    -- Table already in publication
-    NULL;
   WHEN undefined_object THEN
     -- Publication doesn't exist on some setups; ignore.
     NULL;

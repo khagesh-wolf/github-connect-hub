@@ -27,9 +27,9 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
-  // Drop console logs in production
+  // Keep console logs in production (needed for on-site debugging of realtime/offline)
   esbuild: {
-    drop: mode === 'production' ? ['console', 'debugger'] : [],
+    drop: mode === 'production' ? ['debugger'] : [],
   },
   plugins: [
     react(), 
