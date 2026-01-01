@@ -386,10 +386,31 @@ export function DataProvider({ children }: DataProviderProps) {
         });
     };
 
+    const handleOnline = () => {
+      if (destroyed) return;
+      console.log('[DataProvider] Browser online — refreshing data and reconnecting Realtime');
+
+      // Refresh critical data immediately so the UI updates even if WS is blocked.
+      debouncedFetch(
+        'orders_online',
+        async () => {
+          const orders = await ordersApi.getAll().catch(() => []);
+          useStore.getState().setOrders(orders);
+        },
+        100
+      );
+
+      // Attempt to re-establish Realtime immediately (don’t wait for backoff timers).
+      setupRealtime();
+    };
+
+    window.addEventListener('online', handleOnline);
+
     setupRealtime();
 
     // Cleanup
     return () => {
+      window.removeEventListener('online', handleOnline);
       destroyed = true;
       clearReconnectTimer();
       clearRealtimeWatchdog();
