@@ -41,7 +41,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner position="top-right" />
+      <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         {/* PWA redirect handler at root level - runs before route matching */}
         <PWARedirectHandler />
