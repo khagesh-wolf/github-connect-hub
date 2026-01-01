@@ -6,7 +6,9 @@ This guide explains how to set up network printing for remote kitchen/bar printe
 
 Since web browsers cannot directly connect to raw TCP sockets (which thermal printers use), we need a **print server** running on your local network that:
 1. Receives print jobs from the browser via HTTP
-2. Forwards them to the network printer via TCP
+2. Forwards them to the printer on the network
+3. Discovers printers on the network (auto-detection)
+4. Monitors printer status (online/offline)
 
 ```
 ┌─────────────┐     HTTP      ┌──────────────┐     TCP      ┌─────────────┐
@@ -15,53 +17,151 @@ Since web browsers cannot directly connect to raw TCP sockets (which thermal pri
 └─────────────┘               └──────────────┘              └─────────────┘
 ```
 
+## Features
+
+- **Print Jobs**: Send ESC/POS commands to network printers
+- **Auto-Discovery**: Scan local network for printers on port 9100
+- **Status Monitoring**: Check if printers are online/offline
+- **CORS Support**: Works with browser-based applications
+
 ## Requirements
 
 1. **Network Printer**: A thermal printer with WiFi or Ethernet (e.g., XPrinter XP-N160II WiFi)
 2. **Print Server Computer**: Any always-on computer on your network (can be a Raspberry Pi, old laptop, or the POS computer itself)
-3. **Node.js**: Installed on the print server computer
+3. **Node.js**: Installed on the print server computer (version 14+)
 
-## Step 1: Find Your Printer's IP Address
+## Quick Start
 
-### Method 1: Router Admin Panel
-1. Access your router (usually 192.168.1.1 or 192.168.0.1)
-2. Look for connected devices
-3. Find your printer and note its IP
+### 1. Install Node.js
 
-### Method 2: Printer Self-Test
-1. Turn off the printer
-2. Hold the FEED button while turning on
-3. The printer will print its network settings including IP
+Download from https://nodejs.org/ or use package manager:
 
-### Method 3: Network Scan
 ```bash
-# On Windows (Command Prompt)
-arp -a
+# Ubuntu/Debian
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
 
-# On Mac/Linux
-nmap -sn 192.168.1.0/24
+# Windows: Download installer from nodejs.org
 ```
 
-## Step 2: Set Up the Print Server
+### 2. Create Print Server
 
-### Option A: Simple Node.js Server
+Create a folder and save this as `print-server.js`:
 
-1. Install Node.js from https://nodejs.org/
-
-2. Create a folder and file:
-```bash
-mkdir print-server
-cd print-server
-```
-
-3. Create `print-server.js`:
 ```javascript
 const http = require('http');
 const net = require('net');
+const os = require('os');
 
 const PORT = 3001;
 
-const server = http.createServer((req, res) => {
+// ==================== UTILITY FUNCTIONS ====================
+
+// Get local network subnet (e.g., "192.168.1.")
+function getLocalSubnet() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        const parts = iface.address.split('.');
+        return parts.slice(0, 3).join('.') + '.';
+      }
+    }
+  }
+  return '192.168.1.';
+}
+
+// ==================== PRINTER DISCOVERY ====================
+
+// Scan the local network for printers on port 9100
+async function scanForPrinters() {
+  const subnet = getLocalSubnet();
+  const printers = [];
+  const timeout = 500; // 500ms timeout per IP
+  
+  console.log(`Scanning subnet ${subnet}0/24 for printers...`);
+  
+  const promises = [];
+  for (let i = 1; i <= 254; i++) {
+    const ip = subnet + i;
+    promises.push(new Promise((resolve) => {
+      const socket = new net.Socket();
+      socket.setTimeout(timeout);
+      
+      socket.on('connect', () => {
+        console.log(`Found printer at ${ip}:9100`);
+        printers.push({
+          ip,
+          port: 9100,
+          name: `Printer at ${ip}`,
+          online: true,
+        });
+        socket.destroy();
+        resolve();
+      });
+      
+      socket.on('timeout', () => {
+        socket.destroy();
+        resolve();
+      });
+      
+      socket.on('error', () => {
+        socket.destroy();
+        resolve();
+      });
+      
+      socket.connect(9100, ip);
+    }));
+  }
+  
+  await Promise.all(promises);
+  console.log(`Discovery complete. Found ${printers.length} printer(s).`);
+  return printers;
+}
+
+// ==================== PRINTER STATUS CHECK ====================
+
+// Check if a specific printer is online
+async function checkPrinterStatus(ip, port = 9100) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(2000);
+    
+    socket.on('connect', () => {
+      socket.destroy();
+      resolve({
+        online: true,
+        paperLow: false, // ESC/POS status would require DLE EOT commands
+        coverOpen: false,
+        lastChecked: new Date().toISOString(),
+      });
+    });
+    
+    socket.on('timeout', () => {
+      socket.destroy();
+      resolve({
+        online: false,
+        error: 'Connection timeout',
+        lastChecked: new Date().toISOString(),
+      });
+    });
+    
+    socket.on('error', (err) => {
+      socket.destroy();
+      resolve({
+        online: false,
+        error: err.message,
+        lastChecked: new Date().toISOString(),
+      });
+    });
+    
+    socket.connect(port, ip);
+  });
+}
+
+// ==================== HTTP SERVER ====================
+
+const server = http.createServer(async (req, res) => {
   // Enable CORS for browser requests
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -73,13 +173,49 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
   
-  // Health check endpoint
-  if (req.url === '/status') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+  // -------------------- DISCOVERY ENDPOINT --------------------
+  if (req.url === '/discover' && req.method === 'GET') {
+    try {
+      const printers = await scanForPrinters();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ printers }));
+    } catch (err) {
+      console.error('Discovery error:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: err.message, printers: [] }));
+    }
   }
   
-  // Print endpoint
+  // -------------------- PRINTER STATUS ENDPOINT --------------------
+  if (req.url === '/printer-status' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { printerIp, printerPort } = JSON.parse(body);
+        const status = await checkPrinterStatus(printerIp, printerPort || 9100);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(status));
+      } catch (err) {
+        console.error('Status check error:', err);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ online: false, error: err.message }));
+      }
+    });
+    return;
+  }
+  
+  // -------------------- HEALTH CHECK ENDPOINT --------------------
+  if (req.url === '/status') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      subnet: getLocalSubnet() + '0/24',
+    }));
+  }
+  
+  // -------------------- PRINT ENDPOINT --------------------
   if (req.url === '/print' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -87,7 +223,7 @@ const server = http.createServer((req, res) => {
       try {
         const { printerIp, printerPort, data } = JSON.parse(body);
         
-        console.log(`Printing to ${printerIp}:${printerPort}`);
+        console.log(`Printing to ${printerIp}:${printerPort || 9100}`);
         
         const client = new net.Socket();
         client.setTimeout(5000);
@@ -127,52 +263,114 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🖨️  Print Server running on http://0.0.0.0:${PORT}`);
-  console.log('Ready to receive print jobs...');
+  console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║           🖨️  NETWORK PRINT SERVER STARTED               ║
+╠═══════════════════════════════════════════════════════════╣
+║  URL:      http://0.0.0.0:${PORT}                          ║
+║  Subnet:   ${getLocalSubnet()}0/24                          
+║                                                           ║
+║  Endpoints:                                               ║
+║  • GET  /status         - Health check                    ║
+║  • GET  /discover       - Find printers on network        ║
+║  • POST /printer-status - Check specific printer          ║
+║  • POST /print          - Send print job                  ║
+╚═══════════════════════════════════════════════════════════╝
+  `);
 });
 ```
 
-4. Run the server:
+### 3. Run the Server
+
 ```bash
 node print-server.js
 ```
 
-### Option B: Using PM2 (Auto-restart)
-
-For production use, install PM2 to keep the server running:
+### 4. Keep Running with PM2 (Recommended)
 
 ```bash
 npm install -g pm2
 pm2 start print-server.js --name "print-server"
 pm2 save
-pm2 startup  # Follow instructions to auto-start on boot
+pm2 startup  # Auto-start on boot
 ```
 
-### Option C: Raspberry Pi Setup
+## API Reference
 
-Raspberry Pi is perfect for a dedicated print server:
+### GET /status
+Health check endpoint.
 
-```bash
-# Install Node.js
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# Create and run print server
-mkdir ~/print-server && cd ~/print-server
-# Create print-server.js as above
-node print-server.js
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "subnet": "192.168.1.0/24"
+}
 ```
 
-## Step 3: Configure in POS App
+### GET /discover
+Scans the local network for printers on port 9100.
+
+**Response:**
+```json
+{
+  "printers": [
+    { "ip": "192.168.1.100", "port": 9100, "name": "Printer at 192.168.1.100", "online": true },
+    { "ip": "192.168.1.101", "port": 9100, "name": "Printer at 192.168.1.101", "online": true }
+  ]
+}
+```
+
+### POST /printer-status
+Check if a specific printer is online.
+
+**Request:**
+```json
+{
+  "printerIp": "192.168.1.100",
+  "printerPort": 9100
+}
+```
+
+**Response:**
+```json
+{
+  "online": true,
+  "paperLow": false,
+  "coverOpen": false,
+  "lastChecked": "2024-01-01T12:00:00.000Z"
+}
+```
+
+### POST /print
+Send a print job to a network printer.
+
+**Request:**
+```json
+{
+  "printerIp": "192.168.1.100",
+  "printerPort": 9100,
+  "data": [27, 64, 27, 97, 1, ...]  // ESC/POS commands as byte array
+}
+```
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+## Configuration in POS App
 
 1. Open the Counter page
 2. Click the **Printer** icon in the header
 3. Go to **Network (Remote)** tab
-4. For Kitchen Printer:
-   - **Printer IP**: Your printer's IP (e.g., 192.168.1.100)
-   - **Printer Port**: 9100 (default for most thermal printers)
-   - **Print Server URL**: http://[print-server-computer-ip]:3001
-5. Click **Save Config** then **Test**
+4. Enter the print server URL (e.g., `http://192.168.1.50:3001`)
+5. Click **Discover** to find printers automatically
+6. Select a discovered printer or enter IP manually
+7. Click **Save Config** then **Test**
 
 ## Troubleshooting
 
@@ -183,29 +381,69 @@ node print-server.js
 - Check printer port (usually 9100 for raw printing)
 
 ### "Print server not responding"
-- Verify print server is running: visit http://localhost:3001/status in browser
+- Verify print server is running: `curl http://localhost:3001/status`
 - Check firewall allows port 3001
 - On Windows: Allow Node.js through Windows Firewall
 - On Linux: `sudo ufw allow 3001`
+
+### "No printers discovered"
+- Ensure printers are on the same subnet
+- Some printers use different ports (try 9100, 9101, 9102)
+- Check if printer has network printing enabled
 
 ### "Prints are garbled"
 - Printer may not be ESC/POS compatible
 - Check printer documentation for correct port
 
-### Network Printer Recommendations (Nepal)
+## Network Printer Recommendations (Nepal)
 
-| Model | Price (NPR) | Connection | Notes |
-|-------|-------------|------------|-------|
-| XPrinter XP-N160II | ₹4,000-5,000 | WiFi + Ethernet | Best for remote kitchen |
-| XPrinter XP-E200M | ₹3,500-4,500 | Ethernet | Budget option |
-| Epson TM-T82X | ₹15,000+ | WiFi + Ethernet | Premium, very reliable |
+| Model | Price (NPR) | Connection | Status Feedback |
+|-------|-------------|------------|-----------------|
+| XPrinter XP-N160II | ₹4,000-5,000 | WiFi + Ethernet | Basic |
+| XPrinter XP-E200M | ₹3,500-4,500 | Ethernet | Basic |
+| Epson TM-T82X | ₹15,000+ | WiFi + Ethernet | Full (DLE EOT) |
+
+## Raspberry Pi Setup
+
+Perfect for a dedicated print server:
+
+```bash
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Create print server
+mkdir ~/print-server && cd ~/print-server
+nano print-server.js  # Paste the code above
+node print-server.js
+
+# Keep running with PM2
+npm install -g pm2
+pm2 start print-server.js --name "print-server"
+pm2 save
+pm2 startup
+```
 
 ## Security Notes
 
 - The print server should only run on your local network
 - Do not expose port 3001 to the internet
 - For multiple locations, set up a VPN
+- Consider adding authentication for production use
 
-## Support
+## Advanced: Paper Status Detection
 
-If you need help setting up network printing, contact your IT support or the printer vendor.
+Some printers support DLE EOT commands for real-time status. To enable:
+
+```javascript
+// Send DLE EOT 1 to get printer status
+const DLE_EOT = Buffer.from([0x10, 0x04, 0x01]);
+client.write(DLE_EOT);
+client.on('data', (data) => {
+  // Parse status byte
+  const paperOut = (data[0] & 0x0C) !== 0;
+  const coverOpen = (data[0] & 0x60) !== 0;
+});
+```
+
+Note: Not all budget printers support this feature.

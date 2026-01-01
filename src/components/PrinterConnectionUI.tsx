@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Printer, Plug, Unplug, Check, AlertCircle, Loader2, Wifi, Usb, Settings, HelpCircle } from 'lucide-react';
+import { Printer, Plug, Unplug, Check, AlertCircle, Loader2, Wifi, Usb, Settings, HelpCircle, Search, RefreshCw, Circle, AlertTriangle } from 'lucide-react';
 import { dualPrinter } from '@/lib/dualPrinter';
-import { networkKitchenPrinter, networkBarPrinter, NetworkPrinterConfig } from '@/lib/networkPrinter';
+import { networkKitchenPrinter, networkBarPrinter, NetworkPrinterConfig, discoverPrinters, DiscoveredPrinter, PrinterStatus } from '@/lib/networkPrinter';
 import { receiptPrinter } from '@/lib/receiptPrinter';
 import { toast } from 'sonner';
 import { useStore } from '@/store/useStore';
@@ -19,10 +19,58 @@ interface PrinterConnectionUIProps {
 interface NetworkConfigFormProps {
   printerName: string;
   printer: typeof networkKitchenPrinter;
+  discoveredPrinters: DiscoveredPrinter[];
   onConfigured: () => void;
+  status: PrinterStatus | null;
+  onRefreshStatus: () => void;
 }
 
-function NetworkConfigForm({ printerName, printer, onConfigured }: NetworkConfigFormProps) {
+function PrinterStatusIndicator({ status }: { status: PrinterStatus | null }) {
+  if (!status) {
+    return (
+      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+        <Circle className="w-2 h-2" />
+        <span>Unknown</span>
+      </div>
+    );
+  }
+
+  if (!status.online) {
+    return (
+      <div className="flex items-center gap-1.5 text-destructive text-xs">
+        <Circle className="w-2 h-2 fill-destructive" />
+        <span>Offline</span>
+      </div>
+    );
+  }
+
+  if (status.paperLow) {
+    return (
+      <div className="flex items-center gap-1.5 text-warning text-xs">
+        <AlertTriangle className="w-3 h-3" />
+        <span>Low Paper</span>
+      </div>
+    );
+  }
+
+  if (status.coverOpen) {
+    return (
+      <div className="flex items-center gap-1.5 text-warning text-xs">
+        <AlertTriangle className="w-3 h-3" />
+        <span>Cover Open</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 text-success text-xs">
+      <Circle className="w-2 h-2 fill-success" />
+      <span>Online</span>
+    </div>
+  );
+}
+
+function NetworkConfigForm({ printerName, printer, discoveredPrinters, onConfigured, status, onRefreshStatus }: NetworkConfigFormProps) {
   const existingConfig = printer.getConfig();
   const [printerIp, setPrinterIp] = useState(existingConfig?.printerIp || '');
   const [printerPort, setPrinterPort] = useState(existingConfig?.printerPort?.toString() || '9100');
@@ -45,6 +93,8 @@ function NetworkConfigForm({ printerName, printer, onConfigured }: NetworkConfig
     printer.configure(config);
     toast.success(`${printerName} configured`);
     onConfigured();
+    // Check status immediately after configuring
+    setTimeout(onRefreshStatus, 500);
   };
 
   const handleTest = async () => {
@@ -53,6 +103,7 @@ function NetworkConfigForm({ printerName, printer, onConfigured }: NetworkConfig
       const connected = await printer.testConnection();
       if (connected) {
         toast.success('Print server connection successful');
+        onRefreshStatus();
       } else {
         toast.error('Could not connect to print server');
       }
@@ -62,12 +113,54 @@ function NetworkConfigForm({ printerName, printer, onConfigured }: NetworkConfig
     setTesting(false);
   };
 
+  const handleSelectDiscovered = (discovered: DiscoveredPrinter) => {
+    setPrinterIp(discovered.ip);
+    setPrinterPort(discovered.port.toString());
+    toast.info(`Selected ${discovered.name || discovered.ip}`);
+  };
+
   return (
     <div className="space-y-4 p-4 rounded-lg border border-border bg-card/50">
-      <div className="flex items-center gap-2 mb-2">
-        <Wifi className="w-4 h-4 text-primary" />
-        <span className="font-medium text-sm">{printerName}</span>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Wifi className="w-4 h-4 text-primary" />
+          <span className="font-medium text-sm">{printerName}</span>
+        </div>
+        {printer.isConfigured() && (
+          <div className="flex items-center gap-2">
+            <PrinterStatusIndicator status={status} />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={onRefreshStatus}
+            >
+              <RefreshCw className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Discovered printers dropdown */}
+      {discoveredPrinters.length > 0 && (
+        <div className="mb-3">
+          <Label className="text-xs text-muted-foreground mb-1 block">Discovered Printers</Label>
+          <div className="flex flex-wrap gap-2">
+            {discoveredPrinters.map((dp, idx) => (
+              <Button
+                key={idx}
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => handleSelectDiscovered(dp)}
+              >
+                <Circle className={`w-2 h-2 mr-1.5 ${dp.online ? 'fill-success text-success' : 'fill-destructive text-destructive'}`} />
+                {dp.name || dp.ip}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3">
         <div>
@@ -130,6 +223,13 @@ export function PrinterConnectionUI({ open, onOpenChange }: PrinterConnectionUIP
   // Network printer states
   const [networkKitchenConfigured, setNetworkKitchenConfigured] = useState(false);
   const [networkBarConfigured, setNetworkBarConfigured] = useState(false);
+  const [discoveredPrinters, setDiscoveredPrinters] = useState<DiscoveredPrinter[]>([]);
+  const [discovering, setDiscovering] = useState(false);
+  const [printServerUrl, setPrintServerUrl] = useState('http://localhost:3001');
+
+  // Status states
+  const [kitchenStatus, setKitchenStatus] = useState<PrinterStatus | null>(null);
+  const [barStatus, setBarStatus] = useState<PrinterStatus | null>(null);
 
   const isWebUSBSupported = dualPrinter.isSupported();
 
@@ -142,8 +242,49 @@ export function PrinterConnectionUI({ open, onOpenChange }: PrinterConnectionUIP
       setReceiptConnected(receiptPrinter.isConnected());
       setNetworkKitchenConfigured(networkKitchenPrinter.isConfigured());
       setNetworkBarConfigured(networkBarPrinter.isConfigured());
+      
+      // Load print server URL from existing config
+      const kitchenConfig = networkKitchenPrinter.getConfig();
+      if (kitchenConfig?.printServerUrl) {
+        setPrintServerUrl(kitchenConfig.printServerUrl);
+      }
+      
+      // Refresh statuses
+      refreshKitchenStatus();
+      refreshBarStatus();
     }
   }, [open]);
+
+  const refreshKitchenStatus = useCallback(async () => {
+    if (networkKitchenPrinter.isConfigured()) {
+      const status = await networkKitchenPrinter.checkPrinterStatus();
+      setKitchenStatus(status);
+    }
+  }, []);
+
+  const refreshBarStatus = useCallback(async () => {
+    if (networkBarPrinter.isConfigured()) {
+      const status = await networkBarPrinter.checkPrinterStatus();
+      setBarStatus(status);
+    }
+  }, []);
+
+  const handleDiscoverPrinters = async () => {
+    setDiscovering(true);
+    try {
+      const printers = await discoverPrinters(printServerUrl);
+      setDiscoveredPrinters(printers);
+      if (printers.length > 0) {
+        toast.success(`Found ${printers.length} printer(s)`);
+      } else {
+        toast.info('No printers found on network');
+      }
+    } catch (error) {
+      console.error('Discovery error:', error);
+      toast.error('Printer discovery failed. Make sure print server is running.');
+    }
+    setDiscovering(false);
+  };
 
   const handleConnectKitchen = async () => {
     if (!isWebUSBSupported) {
@@ -267,6 +408,8 @@ export function PrinterConnectionUI({ open, onOpenChange }: PrinterConnectionUIP
     setReceiptConnected(false);
     setNetworkKitchenConfigured(false);
     setNetworkBarConfigured(false);
+    setKitchenStatus(null);
+    setBarStatus(null);
     toast.info('All printers disconnected');
   };
 
@@ -459,7 +602,7 @@ export function PrinterConnectionUI({ open, onOpenChange }: PrinterConnectionUIP
             <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
               <AlertCircle className="w-4 h-4 text-primary flex-shrink-0" />
               <p className="text-foreground">
-                Network printing requires a <strong>local print server</strong> running on your network.
+                Network printing requires a <strong>local print server</strong>.
                 <Button
                   variant="link"
                   size="sm"
@@ -467,7 +610,7 @@ export function PrinterConnectionUI({ open, onOpenChange }: PrinterConnectionUIP
                   onClick={() => setShowGuide(!showGuide)}
                 >
                   <HelpCircle className="w-3 h-3 mr-0.5" />
-                  {showGuide ? 'Hide Guide' : 'Setup Guide'}
+                  {showGuide ? 'Hide' : 'Setup Guide'}
                 </Button>
               </p>
             </div>
@@ -476,81 +619,186 @@ export function PrinterConnectionUI({ open, onOpenChange }: PrinterConnectionUIP
               <div className="p-4 rounded-lg border border-border bg-muted/30 text-sm space-y-3">
                 <h4 className="font-semibold flex items-center gap-2">
                   <Settings className="w-4 h-4" />
-                  Print Server Setup Guide
+                  Print Server with Discovery
                 </h4>
                 
-                <div className="space-y-2">
-                  <p className="text-muted-foreground">
-                    A print server bridges your browser to network printers. Set it up on any always-on computer:
-                  </p>
-                  
-                  <div className="bg-background p-3 rounded border text-xs font-mono">
-                    <p className="text-muted-foreground mb-2"># Install Node.js, then create print-server.js:</p>
-                    <pre className="whitespace-pre-wrap text-foreground">
+                <div className="bg-background p-3 rounded border text-xs font-mono max-h-48 overflow-y-auto">
+                  <pre className="whitespace-pre-wrap text-foreground">
 {`const http = require('http');
 const net = require('net');
+const os = require('os');
 
-const server = http.createServer((req, res) => {
+const PORT = 3001;
+
+// Get local network range
+function getLocalSubnet() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        const parts = iface.address.split('.');
+        return parts.slice(0, 3).join('.') + '.';
+      }
+    }
+  }
+  return '192.168.1.';
+}
+
+// Scan for printers on port 9100
+async function scanPrinters() {
+  const subnet = getLocalSubnet();
+  const printers = [];
+  const timeout = 500;
+  
+  const promises = [];
+  for (let i = 1; i <= 254; i++) {
+    const ip = subnet + i;
+    promises.push(new Promise((resolve) => {
+      const socket = new net.Socket();
+      socket.setTimeout(timeout);
+      socket.on('connect', () => {
+        printers.push({ ip, port: 9100, online: true });
+        socket.destroy();
+        resolve();
+      });
+      socket.on('timeout', () => { socket.destroy(); resolve(); });
+      socket.on('error', () => { socket.destroy(); resolve(); });
+      socket.connect(9100, ip);
+    }));
+  }
+  
+  await Promise.all(promises);
+  return printers;
+}
+
+// Check single printer status
+async function checkPrinter(ip, port) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(2000);
+    socket.on('connect', () => {
+      socket.destroy();
+      resolve({ online: true });
+    });
+    socket.on('timeout', () => {
+      socket.destroy();
+      resolve({ online: false, error: 'Timeout' });
+    });
+    socket.on('error', (err) => {
+      socket.destroy();
+      resolve({ online: false, error: err.message });
+    });
+    socket.connect(port, ip);
+  });
+}
+
+const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
   
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    return res.end();
+    return res.writeHead(200).end();
   }
   
+  // Discover printers
+  if (req.url === '/discover') {
+    const printers = await scanPrinters();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ printers }));
+  }
+  
+  // Check printer status
+  if (req.url === '/printer-status' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', async () => {
+      const { printerIp, printerPort } = JSON.parse(body);
+      const status = await checkPrinter(printerIp, printerPort || 9100);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(status));
+    });
+    return;
+  }
+  
+  // Status endpoint
   if (req.url === '/status') {
-    res.writeHead(200);
-    return res.end('OK');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ status: 'ok' }));
   }
   
+  // Print endpoint
   if (req.url === '/print' && req.method === 'POST') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    req.on('data', c => body += c);
     req.on('end', () => {
       const { printerIp, printerPort, data } = JSON.parse(body);
       const client = new net.Socket();
-      client.connect(printerPort, printerIp, () => {
+      client.setTimeout(5000);
+      client.connect(printerPort || 9100, printerIp, () => {
         client.write(Buffer.from(data));
         client.end();
-        res.writeHead(200);
-        res.end('Printed');
+        res.writeHead(200).end(JSON.stringify({ success: true }));
       });
       client.on('error', (err) => {
-        res.writeHead(500);
-        res.end(err.message);
+        res.writeHead(500).end(JSON.stringify({ error: err.message }));
       });
     });
     return;
   }
   
-  res.writeHead(404);
-  res.end('Not Found');
+  res.writeHead(404).end('Not Found');
 });
 
-server.listen(3001, '0.0.0.0', () => {
-  console.log('Print server running on port 3001');
+server.listen(PORT, '0.0.0.0', () => {
+  console.log('Print server on port ' + PORT);
 });`}
-                    </pre>
-                  </div>
-                  
-                  <p className="text-muted-foreground">
-                    Run with: <code className="bg-background px-1 py-0.5 rounded text-xs">node print-server.js</code>
-                  </p>
-                  
-                  <p className="text-muted-foreground">
-                    Keep it running on a computer connected to your restaurant network.
-                  </p>
+                  </pre>
                 </div>
+                
+                <p className="text-muted-foreground text-xs">
+                  Save as <code className="bg-background px-1 rounded">print-server.js</code> and run with <code className="bg-background px-1 rounded">node print-server.js</code>
+                </p>
               </div>
             )}
+
+            {/* Printer Discovery */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Label className="text-xs">Print Server URL</Label>
+                <Input
+                  placeholder="http://localhost:3001"
+                  value={printServerUrl}
+                  onChange={(e) => setPrintServerUrl(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div className="pt-5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDiscoverPrinters}
+                  disabled={discovering}
+                  className="h-9"
+                >
+                  {discovering ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                  ) : (
+                    <Search className="w-4 h-4 mr-1" />
+                  )}
+                  Discover
+                </Button>
+              </div>
+            </div>
 
             {/* Network Kitchen Printer */}
             <NetworkConfigForm
               printerName="Kitchen Printer (Network)"
               printer={networkKitchenPrinter}
+              discoveredPrinters={discoveredPrinters}
               onConfigured={() => setNetworkKitchenConfigured(true)}
+              status={kitchenStatus}
+              onRefreshStatus={refreshKitchenStatus}
             />
 
             {networkKitchenConfigured && (
@@ -571,7 +819,10 @@ server.listen(3001, '0.0.0.0', () => {
                 <NetworkConfigForm
                   printerName="Bar Printer (Network)"
                   printer={networkBarPrinter}
+                  discoveredPrinters={discoveredPrinters}
                   onConfigured={() => setNetworkBarConfigured(true)}
+                  status={barStatus}
+                  onRefreshStatus={refreshBarStatus}
                 />
 
                 {networkBarConfigured && (

@@ -32,7 +32,7 @@ export interface NetworkPrinterConfig {
   name: string;
   printerIp: string;
   printerPort: number;
-  printServerUrl: string; // Local print server URL (e.g., http://localhost:9100)
+  printServerUrl: string; // Local print server URL (e.g., http://localhost:3001)
 }
 
 export interface PrintJob {
@@ -46,9 +46,26 @@ export interface PrintJob {
   printerLabel?: string;
 }
 
+export interface DiscoveredPrinter {
+  ip: string;
+  port: number;
+  name?: string;
+  model?: string;
+  online: boolean;
+}
+
+export interface PrinterStatus {
+  online: boolean;
+  paperLow?: boolean;
+  coverOpen?: boolean;
+  error?: string;
+  lastChecked: string;
+}
+
 export class NetworkPrinter {
   private config: NetworkPrinterConfig | null = null;
   private connected: boolean = false;
+  private status: PrinterStatus | null = null;
   public name: string;
 
   constructor(name: string) {
@@ -106,6 +123,64 @@ export class NetworkPrinter {
       this.connected = false;
       return false;
     }
+  }
+
+  /**
+   * Check printer status via the print server
+   */
+  async checkPrinterStatus(): Promise<PrinterStatus> {
+    if (!this.config) {
+      return {
+        online: false,
+        error: 'Not configured',
+        lastChecked: new Date().toISOString(),
+      };
+    }
+
+    try {
+      const response = await fetch(`${this.config.printServerUrl}/printer-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          printerIp: this.config.printerIp,
+          printerPort: this.config.printerPort,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.status = {
+          online: data.online,
+          paperLow: data.paperLow,
+          coverOpen: data.coverOpen,
+          error: data.error,
+          lastChecked: new Date().toISOString(),
+        };
+        this.connected = data.online;
+      } else {
+        this.status = {
+          online: false,
+          error: 'Print server error',
+          lastChecked: new Date().toISOString(),
+        };
+      }
+    } catch (error) {
+      this.status = {
+        online: false,
+        error: 'Cannot reach print server',
+        lastChecked: new Date().toISOString(),
+      };
+      this.connected = false;
+    }
+
+    return this.status;
+  }
+
+  /**
+   * Get cached printer status
+   */
+  getStatus(): PrinterStatus | null {
+    return this.status;
   }
 
   isConnected(): boolean {
@@ -257,7 +332,69 @@ export class NetworkPrinter {
   disconnect(): void {
     this.connected = false;
     this.config = null;
+    this.status = null;
     localStorage.removeItem(`network_printer_${this.name}`);
+  }
+}
+
+/**
+ * Discover printers on the network via the print server
+ * The print server scans common printer ports on the local subnet
+ */
+export async function discoverPrinters(printServerUrl: string): Promise<DiscoveredPrinter[]> {
+  try {
+    const response = await fetch(`${printServerUrl}/discover`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.printers || [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Printer discovery failed:', error);
+    return [];
+  }
+}
+
+/**
+ * Check if a specific printer is online
+ */
+export async function checkPrinterOnline(
+  printServerUrl: string,
+  printerIp: string,
+  printerPort: number = 9100
+): Promise<PrinterStatus> {
+  try {
+    const response = await fetch(`${printServerUrl}/printer-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ printerIp, printerPort }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        online: data.online,
+        paperLow: data.paperLow,
+        coverOpen: data.coverOpen,
+        error: data.error,
+        lastChecked: new Date().toISOString(),
+      };
+    }
+    return {
+      online: false,
+      error: 'Print server error',
+      lastChecked: new Date().toISOString(),
+    };
+  } catch (error) {
+    return {
+      online: false,
+      error: 'Cannot reach print server',
+      lastChecked: new Date().toISOString(),
+    };
   }
 }
 
