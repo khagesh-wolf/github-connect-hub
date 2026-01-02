@@ -1,24 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
-import { QrCode, Smartphone, Camera } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
 import { isPWA } from './Install';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { QRScanner } from '@/components/QRScanner';
+import { EmbeddedQRScanner } from '@/components/EmbeddedQRScanner';
 
 export default function ScanTable() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { settings } = useStore();
-  const [showScanner, setShowScanner] = useState(false);
+  const [showScanner, setShowScanner] = useState(true);
 
   // Check for table parameter from QR code scan
   const tableFromQR = searchParams.get('table');
 
   // Handle scan result from in-app scanner
   const handleScanResult = (tableNum: number) => {
-    setShowScanner(false);
     if (tableNum >= 1 && tableNum <= settings.tableCount) {
       // Get saved phone (persists across table sessions)
       const phoneKey = 'chiyadani:customerPhone';
@@ -93,6 +91,7 @@ export default function ScanTable() {
         
         if (!isTableExpired && session.table) {
           // Table session still valid, redirect to table
+          setShowScanner(false);
           navigate(`/table/${session.table}`);
           return;
         }
@@ -113,64 +112,47 @@ export default function ScanTable() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-gray-900 flex flex-col items-center justify-center p-6 text-white">
       {/* Logo */}
-      <div className="mb-8 text-center">
+      <div className="mb-6 text-center">
         {settings.logo ? (
           <img 
             src={settings.logo} 
             alt={settings.restaurantName} 
-            className="w-20 h-20 rounded-2xl object-cover mx-auto mb-4 shadow-2xl"
+            className="w-16 h-16 rounded-xl object-cover mx-auto mb-3 shadow-2xl"
           />
         ) : (
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mx-auto mb-4 shadow-2xl">
-            <span className="text-4xl">🍵</span>
+          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mx-auto mb-3 shadow-2xl">
+            <span className="text-3xl">🍵</span>
           </div>
         )}
-        <h1 className="text-3xl font-bold tracking-tight">{settings.restaurantName}</h1>
-        <p className="text-gray-400 mt-1">Digital Menu</p>
+        <h1 className="text-2xl font-bold tracking-tight">{settings.restaurantName}</h1>
+        <p className="text-gray-400 text-sm mt-1">Digital Menu</p>
       </div>
 
-      {/* Main Card */}
-      <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 max-w-sm w-full text-center border border-white/10">
-        <div className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-white/10 flex items-center justify-center">
-          <QrCode className="w-12 h-12 text-amber-400" />
+      {/* QR Scanner */}
+      {showScanner && (
+        <div className="w-full max-w-sm">
+          <EmbeddedQRScanner onScan={handleScanResult} />
+          
+          <p className="text-center text-gray-400 text-sm mt-4">
+            Point camera at your table's QR code
+          </p>
         </div>
-        
-        <h2 className="text-xl font-semibold mb-2">Scan Table QR Code</h2>
-        <p className="text-gray-400 text-sm mb-6">
-          Scan the QR code on your table to start ordering delicious food and drinks.
-        </p>
-
-        <div className="flex items-center justify-center gap-2 text-amber-400 text-sm">
-          <Smartphone className="w-4 h-4" />
-          <span>{isPWA() ? 'Tap button below to scan' : 'Use your camera app to scan'}</span>
-        </div>
-      </div>
-
-      {/* Scan QR Button for PWA */}
-      {isPWA() && (
-        <Button
-          onClick={() => setShowScanner(true)}
-          className="mt-6 bg-amber-500 hover:bg-amber-600 text-black font-medium"
-        >
-          <Camera className="w-4 h-4 mr-2" />
-          Scan QR Code
-        </Button>
       )}
 
       {/* PWA status indicator */}
       {isPWA() && (
-        <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
+        <div className="mt-6 flex items-center gap-2 text-xs text-gray-500">
           <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
           <span>App Mode</span>
         </div>
       )}
 
-      {/* QR Scanner Modal */}
-      {showScanner && (
-        <QRScanner
-          onScan={handleScanResult}
-          onClose={() => setShowScanner(false)}
-        />
+      {/* Non-PWA hint */}
+      {!isPWA() && (
+        <div className="mt-6 flex items-center gap-2 text-amber-400/70 text-xs">
+          <Smartphone className="w-4 h-4" />
+          <span>Install app for best experience</span>
+        </div>
       )}
     </div>
   );
