@@ -211,10 +211,14 @@ async function printDualKOT(
     menuItemCategoryMap.set(item.id, item.category);
   });
 
-  // Build categoryName -> useBarPrinter map
+  // Build categoryKey (id or name) -> useBarPrinter map
   const categoryBarPrinterMap = new Map<string, boolean>();
   categories.forEach(cat => {
-    categoryBarPrinterMap.set(cat.name, cat.useBarPrinter || false);
+    const flag = cat.useBarPrinter ?? false;
+    // Some datasets store MenuItem.category as category name, others as category id.
+    // Support both to ensure correct split.
+    categoryBarPrinterMap.set(cat.name, flag);
+    categoryBarPrinterMap.set(cat.id, flag);
   });
 
   // Split items by printer destination
@@ -222,9 +226,9 @@ async function printDualKOT(
   const barItems: Array<{ name: string; qty: number }> = [];
 
   order.items.forEach(item => {
-    const categoryName = menuItemCategoryMap.get(item.menuItemId);
-    const useBarPrinter = categoryName ? categoryBarPrinterMap.get(categoryName) : false;
-    
+    const categoryKey = menuItemCategoryMap.get(item.menuItemId);
+    const useBarPrinter = categoryKey ? (categoryBarPrinterMap.get(categoryKey) ?? false) : false;
+
     if (useBarPrinter) {
       barItems.push({ name: item.name, qty: item.qty });
     } else {
@@ -250,7 +254,8 @@ async function printDualKOT(
       const printed = await dualPrinter.kitchenPrinter.printKOT({
         ...baseData,
         items: kitchenItems,
-        printerLabel: '🍳 KITCHEN ORDER'
+        // Avoid emojis on ESC/POS printers (many will print blank boxes / nothing)
+        printerLabel: 'KITCHEN ORDER'
       });
       success = success && printed;
     } else {
@@ -258,7 +263,7 @@ async function printDualKOT(
       kotPrinter.openPrintWindow({
         ...baseData,
         items: kitchenItems,
-        printerLabel: '🍳 KITCHEN ORDER'
+        printerLabel: 'KITCHEN ORDER'
       });
     }
   }
@@ -270,7 +275,7 @@ async function printDualKOT(
       const printed = await dualPrinter.barPrinter.printKOT({
         ...baseData,
         items: barItems,
-        printerLabel: '🍹 BAR ORDER'
+        printerLabel: 'BAR ORDER'
       });
       success = success && printed;
     } else {
@@ -279,7 +284,7 @@ async function printDualKOT(
         kotPrinter.openPrintWindow({
           ...baseData,
           items: barItems,
-          printerLabel: '🍹 BAR ORDER'
+          printerLabel: 'BAR ORDER'
         });
       }, 500);
     }
